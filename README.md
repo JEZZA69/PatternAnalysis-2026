@@ -18,3 +18,7 @@ In the recognition folder, you will find many recognition problems solved includ
 * transformers
 etc.
 
+# My decision
+2D CAN
+Use OASIS Brain 2D dataset. Ref: [3]. Dilated context
+aggregation; target Dice ≥ 0.9 across all labels on test set
