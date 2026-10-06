@@ -39,12 +39,10 @@ class ContextAggregationModule(nn.Module):
         This allows the network to actually TRAIN
         """
         
-        # grab layers 2 through 7 (the internal C to C layers)
         layers_to_init = [self.layer2, self.layer3, self.layer4, self.layer5, self.layer6, self.layer7]
         
         for layer in layers_to_init:
-            
-            # Whiteout. weights and biases are now 0.
+            # Whiteout.
             nn.init.constant_(layer.weight, 0.0)
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0.0)
@@ -57,7 +55,6 @@ class ContextAggregationModule(nn.Module):
                 layer.weight.data[i,i,1,1] = 1.0
                       
     def forward(self, x):
-        # Layers 1 to 7 use a point-wise truncation max(x, 0)
         x = self.relu(self.layer1(x))
         x = self.relu(self.layer2(x))
         x = self.relu(self.layer3(x))
@@ -65,8 +62,6 @@ class ContextAggregationModule(nn.Module):
         x = self.relu(self.layer5(x))
         x = self.relu(self.layer6(x))
         x = self.relu(self.layer7(x))
-        
-        # Layer 8 has NO activation function before returning the logits
         return self.layer8(x)
     
 
