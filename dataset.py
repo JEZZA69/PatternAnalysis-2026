@@ -4,68 +4,62 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import torchvision.transforms as transforms
+import nibabel as nib
 
-class OASISDataset(Dataset):
-    def __init__(self, image_paths, mask_paths, transform=None):
-        self.image_paths = sorted(image_paths)
-        self.mask_paths = sorted(mask_paths)
-        self.transform = transform
+# OASIS Brain 2D dataset. 
+# Found here: https://github.com/adalca/medical-datasets/blob/master/neurite-oasis.md
+
+class OASIS2DDataset(Dataset):
+    def __init__(self, subject_dirs):
+        self.subject_dirs = sorted(subject_dirs)
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.subject_dirs)
 
     def __getitem__(self, idx):
-        # Load image and mask
-        image = Image.open(self.image_paths[idx]).convert("L")
-        mask = Image.open(self.mask_paths[idx])
-
-        if self.transform:
-            image = self.transform(image)
-            mask = self.transform(mask)
-
-        return image, mask
+        sub_dir = self.subject_dirs[idx]
+        
+        # Define exact paths to the 2d scan and its 24-structure segmentation labels
+        img_path = os.path.join(sub_dir, "slice_norm.nii.gz")
+        mask_path = os.path.join(sub_dir, "slice_seg24.nii.gz")
+        
+        # 2. Load NIfTI volumes and extract raw numpy arrays
+        # .get_fdata() converts the data into float arrays automatically
+        image_np = nib.load(img_path).get_fdata()
+        mask_np = nib.load(mask_path).get_fdata()
+        
+        # Convert to tensor
+        # FloatTensor with a channel dimension added -> [1, Height, Width]
+        image_tensor = torch.tensor(image_np, dtype=torch.float32).unsqueeze(0)
+        
+        # Mask: LongTensor (integers 0-23 for classification loss tasks) -> [Height, Width]
+        mask_tensor = torch.tensor(mask_np, dtype=torch.long)
+        
+        return image_tensor, mask_tensor
 
 def get_oasis_dataloaders(data_dir, batch_size=16, train_split=0.7, val_split=0.15):
-    """
-    Scans data_dir, performs patient-level splitting, and returns DataLoaders.
-    """
-    # 1. Gather file paths
-    all_images = glob.glob(os.path.join(data_dir, "images", "*.png"))
+    # Find all subject folders matching pattern 'OASIS_OAS1_*'
+    all_subjects = glob.glob(os.path.join(data_dir, "OASIS_OAS1_*"))
+    all_subjects.sort()  # Keep reproducible order
     
-    # 2. Extract patient IDs to enforce patient-level split (prevent leakage)
-    patient_ids = list(set([os.path.basename(f).split('_')[0] for f in all_images]))
-    patient_ids.sort()
-
-    num_patients = len(patient_ids)
-    train_end = int(num_patients * train_split)
-    val_end = int(num_patients * (train_split + val_split))
-
-    train_patients = set(patient_ids[:train_end])
-    val_patients = set(patient_ids[train_end:val_end])
-    test_patients = set(patient_ids[val_end:])
-
-    train_imgs = [f for f in all_images if os.path.basename(f).split('_')[0] in train_patients]
-    val_imgs = [f for f in all_images if os.path.basename(f).split('_')[0] in val_patients]
-    test_imgs = [f for f in all_images if os.path.basename(f).split('_')[0] in test_patients]
-
-    # Map image paths to corresponding mask paths
-    train_masks = [f.replace("images", "masks") for f in train_imgs]
-    val_masks = [f.replace("images", "masks") for f in val_imgs]
-    test_masks = [f.replace("images", "masks") for f in test_imgs]
-
-    # Transforms
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
-
-    # Datasets
-    train_dataset = OASISDataset(train_imgs, train_masks, transform=transform)
-    val_dataset = OASISDataset(val_imgs, val_masks, transform=transform)
-    test_dataset = OASISDataset(test_imgs, test_masks, transform=transform)
-
-    # DataLoaders
+    # Calculate patient-level structural splits 
+    num_subs = len(all_subjects)
+    train_end = int(num_subs * train_split)
+    val_end = int(num_subs * (train_split + val_split))
+    
+    # Split directories cleanly (no leakage, one patient belongs strictly to one set)
+    train_dirs = all_subjects[:train_end]
+    val_dirs = all_subjects[train_end:val_end]
+    test_dirs = all_subjects[val_end:]
+    
+    # Create dataset objects using our custom medical reader
+    train_dataset = OASIS2DDataset(train_dirs)
+    val_dataset = OASIS2DDataset(val_dirs)
+    test_dataset = OASIS2DDataset(test_dirs)
+    
+    # Bundle into final PyTorch DataLoaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
+    
     return train_loader, val_loader, test_loader
