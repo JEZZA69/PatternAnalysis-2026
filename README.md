@@ -22,3 +22,7 @@ etc.
 2D CAN
 Use OASIS Brain 2D dataset. Ref: [3]. Dilated context
 aggregation; target Dice ≥ 0.9 across all labels on test set
+
+
+# Literature and Further Reading
+See https://arxiv.org/pdf/1511.07122 for more info on CAN architecture
