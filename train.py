@@ -21,3 +21,43 @@ def calculate_dice_score(predictions: torch.Tensor, targets: torch.Tensor, num_c
     dice_per_class = (2.0 * intersection + smoothing) / (cardinality + smoothing)
 
     return dice_per_class.mean().item()
+
+def train_one_epoch(model, dataloader, criterion, optimizer, device):
+    model.train()
+    running_loss = 0.0
+    running_dice = 0.0
+
+    for images, targets in dataloader:
+        images, targets = images.to(device), targets.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item() * images.size(0)
+        running_dice += calculate_dice_score(outputs, targets) * images.size(0)
+
+    total_samples = len(dataloader.dataset)
+    return running_loss / total_samples, running_dice / total_samples
+
+
+def validate_one_epoch(model, dataloader, criterion, device):
+    model.eval()
+    running_loss = 0.0
+    running_dice = 0.0
+
+    with torch.no_grad():
+        for images, targets in dataloader:
+            images = images.to(device)
+            targets = targets.to(device)
+            
+            outputs = model(images)
+            loss = criterion(outputs, targets)
+
+            running_loss += loss.item() * images.size(0)
+            running_dice += calculate_dice_score(outputs, targets) * images.size(0)
+
+    total_samples = len(dataloader.dataset)
+    return running_loss / total_samples, running_dice / total_samples
