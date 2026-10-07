@@ -25,19 +25,15 @@ class OASIS2DDataset(Dataset):
         return len(self.image_paths)
     
     def __getitem__(self, idx):
-        # 1. Open the 2D image and mask as grayscale
+        # Open the 2D image and mask as grayscale
         img = Image.open(self.image_paths[idx]).convert("L")
         mask = Image.open(self.mask_paths[idx]).convert("L")
         
-        # 2. Convert to raw numpy formats
+        # Convert to raw numpy formats
         img_np = np.array(img, dtype=np.float32) / 255.0  # Scale pixel intensities to [0, 1]
         mask_np = np.array(mask, dtype=np.int64)          # Class labels as integers
-        
-        # 3. Handle UQ thresholding: Convert grayscale label intensity to binary classes (0 and 1)
-        if mask_np.max() > 1:
-            mask_np = (mask_np > 127).astype(np.int64)
 
-        # 4. Convert into standard PyTorch Tensors
+        # Convert into standard PyTorch Tensors
         image_tensor = torch.tensor(img_np, dtype=torch.float32).unsqueeze(0) # [1, H, W]
         mask_tensor = torch.tensor(mask_np, dtype=torch.long)                 # [H, W]
         
