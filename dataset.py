@@ -3,8 +3,7 @@ import glob
 import torch
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
-import torchvision.transforms as transforms
-import nibabel as nib
+import numpy as np
 
 # OASIS Brain 2D dataset. 
 # Found here: https://github.com/adalca/medical-datasets/blob/master/neurite-oasis.md
@@ -72,8 +71,6 @@ def get_oasis_dataloaders(data_dir, batch_size=16):
     test_loader = DataLoader(test_dataset=test_ds, batch_size=batch_size, shuffle=False)
     
     return train_loader, val_loader, test_loader
-
-
 
 # ==========================================
 # SANITY CHECK TEST BLOCK (AI generated.)
