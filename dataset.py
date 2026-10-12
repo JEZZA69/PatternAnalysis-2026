@@ -13,8 +13,8 @@ class OASIS2DDataset(Dataset):
         """
         Directly loads paired images and masks from their respective pre-split folders.
         """
-        self.image_paths = sorted(glob.glob(os.path.join(images_dir)))
-        self.mask_paths = sorted(glob.glob(os.path.join(masks_dir)))
+        self.image_paths = sorted(glob.glob(os.path.join(images_dir, "*.png")))
+        self.mask_paths = sorted(glob.glob(os.path.join(masks_dir, "*.png")))
         
         # Safety check to ensure images match masks 1:1
         assert len(self.image_paths) == len(self.mask_paths), \
