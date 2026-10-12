@@ -20,7 +20,7 @@ class OASIS2DDataset(Dataset):
         assert len(self.image_paths) == len(self.mask_paths), \
             f"Mismatch! Found {len(self.image_paths)} images in {os.path.basename(images_dir)} " \
             f"but {len(self.mask_paths)} masks in {os.path.basename(masks_dir)}."
-
+            
     def __len__(self):
         return len(self.image_paths)
     
@@ -31,7 +31,10 @@ class OASIS2DDataset(Dataset):
         
         # Convert to raw numpy formats
         img_np = np.array(img, dtype=np.float32) / 255.0  # Scale pixel intensities to [0, 1]
+        
         mask_np = np.array(mask, dtype=np.int64)          # Class labels as integers
+        # The labels in the oasis dataset are 4-classes. [0, 85, 170, 255], so we need to divide them to make the CrossEntropyLoss work. Because we need classes 1,2,3,4.
+        mask_np = mask_np // 85 # 0->0, 85->1, 170->2, 255->3
 
         # Convert into standard PyTorch Tensors
         image_tensor = torch.tensor(img_np, dtype=torch.float32).unsqueeze(0) # [1, H, W]
@@ -66,7 +69,7 @@ def get_oasis_dataloaders(data_dir, batch_size=16):
     val_loader = DataLoader(dataset=val_ds, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(dataset=test_ds, batch_size=batch_size, shuffle=False)
     
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader, test_loader, 4
 
 # ==========================================
 # SANITY CHECK TEST BLOCK (AI generated.)
