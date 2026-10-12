@@ -1,0 +1,61 @@
+PS C:\Users\Jeremy\Desktop\PatternAnalysis-2026> & C:\Users\Jeremy\AppData\Local\Programs\Python\Python312\python.exe c:/Users/Jeremy/Desktop/PatternAnalysis-2026/train.py
+Training on: privateuseone:1
+🚀 Home AMD GPU Active via DirectML: privateuseone:1
+--> [Dataset Ingestion] Train samples: 9664 | Val: 1120 | Test: 544
+Starting Training Loop.
+C:\Users\Jeremy\AppData\Local\Programs\Python\Python312\Lib\site-packages\torch\optim\adamw.py:529: UserWarning: The operator 'aten::lerp.Scalar_out' is not currently supported on the DML backend and will fall back to run on the CPU. This may have performance implications. (Triggered internally at C:\__w\1\s\pytorch-directml-plugin\torch_directml\csrc\dml\dml_cpu_fallback.cpp:17.)
+  torch._foreach_lerp_(device_exp_avgs, device_grads, 1 - beta1)
+Batch [20/302] | Loss: 0.9233
+Batch [40/302] | Loss: 0.4957
+Batch [60/302] | Loss: 0.3917
+Batch [80/302] | Loss: 0.3159
+Batch [100/302] | Loss: 0.2284
+Batch [120/302] | Loss: 0.1972
+Batch [140/302] | Loss: 0.1789
+Batch [160/302] | Loss: 0.1772
+Batch [180/302] | Loss: 0.1718
+Batch [200/302] | Loss: 0.1488
+Batch [220/302] | Loss: 0.1473
+Batch [240/302] | Loss: 0.1433
+Batch [260/302] | Loss: 0.1266
+Batch [280/302] | Loss: 0.1304
+Batch [300/302] | Loss: 0.1384
+Val Batch [20/35] | Loss: 0.1115 | Batch Dice: 0.8906
+Epoch [1/3] | Train Loss: 0.2993 | Train Dice: 0.8797 | Val Loss: 0.1189 | Val Dice: 0.8730
+--> Saved new best model checkpoint to best_can_mode.pth (Dice: 0.8730)
+Batch [20/302] | Loss: 0.1180
+Batch [40/302] | Loss: 0.1231
+Batch [60/302] | Loss: 0.1173
+Batch [80/302] | Loss: 0.1114
+Batch [100/302] | Loss: 0.1173
+Batch [120/302] | Loss: 0.1046
+Batch [140/302] | Loss: 0.1305
+Batch [160/302] | Loss: 0.1011
+Batch [180/302] | Loss: 0.1081
+Batch [200/302] | Loss: 0.1009
+Batch [220/302] | Loss: 0.1188
+Batch [240/302] | Loss: 0.1000
+Batch [260/302] | Loss: 0.1118
+Batch [280/302] | Loss: 0.1031
+Batch [300/302] | Loss: 0.0999
+Val Batch [20/35] | Loss: 0.0975 | Batch Dice: 0.9014
+Epoch [2/3] | Train Loss: 0.1104 | Train Dice: 0.8944 | Val Loss: 0.0970 | Val Dice: 0.8912
+--> Saved new best model checkpoint to best_can_mode.pth (Dice: 0.8912)
+Batch [20/302] | Loss: 0.1033
+Batch [40/302] | Loss: 0.1161
+Batch [60/302] | Loss: 0.1064
+Batch [80/302] | Loss: 0.1151
+Batch [100/302] | Loss: 0.1049
+Batch [120/302] | Loss: 0.1240
+Batch [140/302] | Loss: 0.1158
+Batch [160/302] | Loss: 0.1194
+Batch [180/302] | Loss: 0.9842
+Batch [200/302] | Loss: 0.2058
+Batch [220/302] | Loss: 0.1385
+Batch [240/302] | Loss: 0.1355
+Batch [260/302] | Loss: 19.7043
+Batch [280/302] | Loss: 101.2587
+Batch [300/302] | Loss: 106.0379
+Val Batch [20/35] | Loss: 106.0262 | Batch Dice: 0.3073
+Epoch [3/3] | Train Loss: 14.0774 | Train Dice: 0.3026 | Val Loss: 105.3929 | Val Dice: 0.3049
+Training complete!
