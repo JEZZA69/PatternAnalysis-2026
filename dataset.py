@@ -65,9 +65,9 @@ def get_oasis_dataloaders(data_dir, batch_size=16):
     print(f"--> [Dataset Ingestion] Train samples: {len(train_ds)} | Val: {len(val_ds)} | Test: {len(test_ds)}")
     
     # Wrap with robust PyTorch loaders
-    train_loader = DataLoader(dataset=train_ds, batch_size=batch_size, shuffle=True, drop_last=True)
-    val_loader = DataLoader(dataset=val_ds, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(dataset=test_ds, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(dataset=train_ds, num_workers=4, pin_memory=True, batch_size=batch_size, shuffle=True, drop_last=True)
+    val_loader = DataLoader(dataset=val_ds, num_workers=4, pin_memory=True, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(dataset=test_ds, num_workers=4, pin_memory=True, batch_size=batch_size, shuffle=False)
     
     return train_loader, val_loader, test_loader, 4
 
