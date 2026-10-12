@@ -3,3 +3,4 @@ oasis_dataset.tar.gz
 OASIS/*
 .vscode
 __pycache__
+*.pth
