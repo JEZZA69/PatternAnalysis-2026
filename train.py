@@ -8,7 +8,7 @@ from dataset import get_oasis_dataloaders
 
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "OASIS")
-BATCH_SIZE = 8
+BATCH_SIZE = 64
 EPOCHS = 3
 LEARNING_RATE = 1e-3
 SAVE_PATH = "best_can_mode.pth"
