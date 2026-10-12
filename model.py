@@ -50,7 +50,8 @@ class ContextAggregationModule(nn.Module):
             # Find the exact centre pixel of the 3x3 filter
             # A 3x3 matrix has indices: top=[0], middle=[1], bottom=[2]
             # So index [1,1] is the dead centre
-            for i in range(layer.out_channels):
+            min_channels = min(layer.out_channels, layer.in_channels)
+            for i in range(min_channels):
                 # If input channel = output channel, (i,i), set the center pixel to 1.
                 layer.weight.data[i,i,1,1] = 1.0
                       
