@@ -3,21 +3,30 @@ import torch.nn as nn
 import numpy as np
 import os
 
+import torch_directml
+
 from model import *
 from dataset import get_oasis_dataloaders
 
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "OASIS")
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 EPOCHS = 3
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-4
 SAVE_PATH = "best_can_mode.pth"
 
-def calculate_dice_score(predictions: torch.Tensor, targets: torch.Tensor, num_classes: int = 4, smoothing: float = 1e-6) -> float:    
+def calculate_dice_score(outputs: torch.Tensor, targets: torch.Tensor, num_classes: int = 4, smoothing: float = 1e-6) -> float:    
     """
     Computes macro-averaged Dice score across active classes.
     """
-    predicted_classes = torch.argmax(predictions, dim=1)
+    
+    # Ensure variables are on CPU to stay immune to DirectML backend bugs.
+    if outputs.device.type != 'cpu':
+        outputs = outputs.cpu()
+    if targets.device.type != 'cpu':
+        targets = targets.cpu()
+    
+    predicted_classes = torch.argmax(outputs, dim=1)
     
     # One-hot encode predictions and targets: [B, H, W] -> [B, H, W, C] -> [B, C, H, W]
     prediction_one_hot = torch.nn.functional.one_hot(predicted_classes, num_classes=num_classes).permute(0, 3, 1, 2).float()
@@ -49,39 +58,68 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         optimizer.step()
 
         running_loss += loss.item() * batch_size
-        running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * batch_size
+        # running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * batch_size
         total_samples += batch_size
         
-        # Print current stats.
-        current_avg_dice = running_dice / total_samples
-        print(f"Batch [{batch_idx+1}/{len(dataloader)}] | Batch Loss: {loss.item():.4f} | Running Avg Dice: {current_avg_dice:.4f}")
+        # current_avg_dice = running_dice / total_samples
+        
+        # Only print every 20 batches to minimize synchronous overhead
+        if (batch_idx + 1) % 20 == 0:
+            print(f"Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f}")
         
     total_samples = len(dataloader.dataset)
-    return running_loss / total_samples, running_dice / total_samples
-
+    
+    dice = calculate_dice_score(outputs, targets, num_classes=num_classes)
+    return running_loss / total_samples, dice
 
 def validate_one_epoch(model, dataloader, criterion, device, num_classes):
     model.eval()
     running_loss = 0.0
     running_dice = 0.0
+    total_samples = 0
 
     with torch.no_grad():
-        for images, targets in dataloader:
+        for batch_idx, (images, targets) in enumerate(dataloader):
             images = images.to(device)
             targets = targets.to(device)
+            batch_size = images.size(0)
             
             outputs = model(images)
             loss = criterion(outputs, targets)
-
+            
             running_loss += loss.item() * images.size(0)
-            running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * images.size(0)
+            
+            # Move to cpu for this stuff. critical. Lots of lost hair over this.
+            outputs_cpu = outputs.detach().cpu()
+            targets_cpu = targets.detach().cpu()
+            
+            dice = calculate_dice_score(outputs_cpu, targets_cpu, num_classes=num_classes)
+            running_dice += dice * batch_size
+            
+            total_samples += batch_size
+            
+            if (batch_idx + 1) % 20 == 0:
+                print(f"Val Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f} | Batch Dice: {dice:.4f}")
 
     total_samples = len(dataloader.dataset)
     return running_loss / total_samples, running_dice / total_samples
 
 def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch_directml.device(1) 
     print(f"Training on: {device}")
+    
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print(f"🏛️ University NVIDIA Cluster Active: {device}")
+    else:
+        try:
+            # Forces index 1 (9070 XT) at home instead of index 0 (Integrated Graphics)
+            device = torch_directml.device(1) # Finally... a hardware acceleration fix that isn't rocm?
+            print(f"🚀 Home AMD GPU Active via DirectML: {device}")
+        except (ImportError, RuntimeError):
+            device = torch.device("cpu")
+            print(f"⚠️ Falling back to CPU: {device}")
     
     # Data loaders
     train_loader, val_loader, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
