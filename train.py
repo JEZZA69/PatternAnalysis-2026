@@ -36,9 +36,11 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
     model.train()
     running_loss = 0.0
     running_dice = 0.0
+    total_samples = 0
 
-    for images, targets in dataloader:
+    for batch_idx, (images, targets) in enumerate(dataloader):
         images, targets = images.to(device), targets.to(device)
+        batch_size = images.size(0)
 
         optimizer.zero_grad()
         outputs = model(images)
@@ -72,7 +74,7 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             loss = criterion(outputs, targets)
 
             running_loss += loss.item() * images.size(0)
-            running_dice += calculate_dice_score(outputs, targets) * images.size(0)
+            running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * images.size(0)
 
     total_samples = len(dataloader.dataset)
     return running_loss / total_samples, running_dice / total_samples
