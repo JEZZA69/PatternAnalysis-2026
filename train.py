@@ -76,7 +76,6 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on: {device}")
     
-    
     # Data loaders
     train_loader, val_loader, test_loader = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
     
@@ -87,3 +86,28 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
+    
+    best_val_dice = 0
+    
+    print("Starting Training Loop.")
+    
+    for epoch in range(EPOCHS):
+        train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device)
+        
+        scheduler.step(val_dice)
+        
+        print(f"Epoch [{epoch+1}/{EPOCHS}] | "
+              f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
+              f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
+        
+        # Save best model checkpoint based on validation Dice score
+        if val_dice > best_val_dice:
+            best_val_dice = val_dice
+            torch.save(model.state_dict(), SAVE_PATH)
+            print(f"--> Saved new best model checkpoint to {SAVE_PATH} (Dice: {best_val_dice:.4f})")
+
+    print("Training complete!")
+    
+if __name__ == "__main__":
+    main()
