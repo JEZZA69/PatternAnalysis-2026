@@ -13,7 +13,7 @@ EPOCHS = 3
 LEARNING_RATE = 1e-3
 SAVE_PATH = "best_can_mode.pth"
 
-def calculate_dice_score(predictions: torch.Tensor, targets: torch.Tensor, num_classes: int = 24, smoothing: float = 1e-6) -> float:    
+def calculate_dice_score(predictions: torch.Tensor, targets: torch.Tensor, num_classes: int = 4, smoothing: float = 1e-6) -> float:    
     """
     Computes macro-averaged Dice score across active classes.
     """
@@ -32,7 +32,7 @@ def calculate_dice_score(predictions: torch.Tensor, targets: torch.Tensor, num_c
 
     return dice_per_class.mean().item()
 
-def train_one_epoch(model, dataloader, criterion, optimizer, device):
+def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes):
     model.train()
     running_loss = 0.0
     running_dice = 0.0
@@ -46,14 +46,19 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         loss.backward()
         optimizer.step()
 
-        running_loss += loss.item() * images.size(0)
-        running_dice += calculate_dice_score(outputs, targets) * images.size(0)
-
+        running_loss += loss.item() * batch_size
+        running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * batch_size
+        total_samples += batch_size
+        
+        # Print current stats.
+        current_avg_dice = running_dice / total_samples
+        print(f"Batch [{batch_idx+1}/{len(dataloader)}] | Batch Loss: {loss.item():.4f} | Running Avg Dice: {current_avg_dice:.4f}")
+        
     total_samples = len(dataloader.dataset)
     return running_loss / total_samples, running_dice / total_samples
 
 
-def validate_one_epoch(model, dataloader, criterion, device):
+def validate_one_epoch(model, dataloader, criterion, device, num_classes):
     model.eval()
     running_loss = 0.0
     running_dice = 0.0
@@ -77,10 +82,10 @@ def main():
     print(f"Training on: {device}")
     
     # Data loaders
-    train_loader, val_loader, test_loader = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
+    train_loader, val_loader, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
     
-    # Model
-    model = ContextAggregationModule(in_channels=1, num_classes=24, C=64).to(device)
+    # Model. 4 Classes in the OASIS dataset.
+    model = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device)
     
     # Optimization
     criterion = nn.CrossEntropyLoss()
@@ -92,8 +97,8 @@ def main():
     print("Starting Training Loop.")
     
     for epoch in range(EPOCHS):
-        train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device)
+        train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device, num_classes)
+        val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device, num_classes)
         
         scheduler.step(val_dice)
         
