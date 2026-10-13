@@ -64,18 +64,3 @@ class ContextAggregationModule(nn.Module):
         x = self.relu(self.layer6(x))
         x = self.relu(self.layer7(x))
         return self.layer8(x)
-    
-
-# AI made this.
-if __name__ == "__main__":
-    # Create a dummy batch resembling a real loader item: [Batch_Size, Channels, Height, Width]
-    dummy_input = torch.randn(4, 1, 160, 192) 
-    
-    # Initialize the model matching your exact task constraints
-    model = ContextAggregationModule(in_channels=1, num_classes=24, C=64)
-    output = model(dummy_input)
-    
-    print("=== CAN Architecture Verification ===")
-    print(f"Input Shape:  {dummy_input.shape}")   # Expected: [4, 1, 160, 192]
-    print(f"Output Shape: {output.shape}")        # Expected: [4, 24, 160, 192]
-    print("=====================================")
