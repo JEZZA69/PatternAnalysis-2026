@@ -5,7 +5,7 @@ import os
 
 import torch_directml
 
-from model import *
+from modules import *
 from dataset import get_oasis_dataloaders
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
