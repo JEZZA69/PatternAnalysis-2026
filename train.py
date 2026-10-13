@@ -144,7 +144,7 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
     
     # Load the checkpoint
     print(f"Loading checkpoint from {path}...")
-    checkpoint = torch.load(path, map_location=device)
+    checkpoint = torch.load(path, map_location='cpu')
     
     # Inject the checkpoint into the model.
     model.load_state_dict(checkpoint['model_state'])
@@ -191,7 +191,7 @@ def main():
     # Load the checkpoint for iterative improvement
     start_epoch, best_dice_val = load_checkpoint(CHECKPOINT_PATH, model, optimizer=optimizer, scheduler=scheduler, device=device)
     total_epochs_to_run = start_epoch + EPOCHS
-    print(f"Starting Training Loop from Epoch {start_epoch} to {start_epoch + EPOCHS}...")
+    print(f"Starting Training Loop from Epoch {start_epoch}")
                 
     for epoch in range(start_epoch, total_epochs_to_run):
         train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device, num_classes)
