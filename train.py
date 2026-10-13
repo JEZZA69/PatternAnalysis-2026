@@ -16,7 +16,7 @@ MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
 CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
-EPOCHS = 4
+EPOCHS = 20
 LEARNING_RATE = 5e-5
 SAVE_PATH = "best_can_model.pth"
 
@@ -58,10 +58,17 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         optimizer.zero_grad()
         outputs = model(images)
         loss = criterion(outputs, targets)
+        
+        # --- NAN GUARD --- 
+        # Had alot of issues with gradient explosion so this was added
+        if torch.isnan(loss):
+            print(f"WARN: NaN loss detected at batch {batch_idx+1}. Skipping batch to prevent corruption.")
+            optimizer.zero_grad()
+            continue
+        # -----------------
+        
         loss.backward()
-        
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, foreach=False)
-        
         optimizer.step()
 
         running_loss += loss.item() * batch_size
