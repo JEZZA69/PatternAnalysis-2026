@@ -10,6 +10,7 @@ from dataset import get_oasis_dataloaders
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
+LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "training_log.md")
 
 MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
 CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
@@ -102,8 +103,7 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             
             total_samples += batch_size
             
-            if (batch_idx + 1) % 20 == 0:
-                print(f"Val Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f} | Batch Dice: {dice:.4f}")
+            print(f"Val Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f} | Batch Dice: {dice:.4f}")
                 
         total_samples = len(dataloader.dataset)
         return running_loss / total_samples, running_dice / total_samples
@@ -113,7 +113,7 @@ def evaluate_test_set(model, test_loader, criterion, device, num_classes=4):
     
     print("\nRunning final test set evaluation...")
     test_loss, test_dice = validate_one_epoch(model, test_loader, criterion, device, num_classes) 
-    print(f"🎯 Final Test Loss: {test_loss:.4f} | Final Test Dice: {test_dice:.4f}")
+    print(f"Final Test Loss: {test_loss:.4f} | Final Test Dice: {test_dice:.4f}")
       
 def save_checkpoint(epoch, model, optimizer, scheduler, path=CHECKPOINT_PATH, best_dice_val=0.0):
     """Saves a complete snapshot of the model to be resumed later. Prevents the need for long compute sessions, enabling incremental improvement of the model."""
@@ -158,6 +158,22 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
     
     print(f"Resuming seamlessly! Next epoch will be Epoch {start_epoch + 1}.")
     return start_epoch, best_dice_val
+
+LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "training_log.md")
+
+def log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice, path=LOG_FILE_PATH):
+    """Appends training and validation metrics to a Markdown table log file."""
+    file_exists = os.path.exists(path)
+    
+    with open(path, "a", encoding="utf-8") as f:
+        # If file doesn't exist, write the Markdown header and divider
+        if not file_exists:
+            f.write("# CAN Training and Validation Log\n\n")
+            f.write("| Epoch | Train Loss | Train Dice | Val Loss | Val Dice |\n")
+            f.write("|:---:|:---:|:---:|:---:|:---:|\n")
+        
+        # Append the current epoch's row
+        f.write(f"| {epoch + 1} | {train_loss:.4f} | {train_dice:.4f} | {val_loss:.4f} | {val_dice:.4f} |\n")
     
 def main():    
     # Make the correct device selection according to what computer I am using to run this.
@@ -200,6 +216,8 @@ def main():
         print(f"Epoch [{epoch}/{end_epoch}] finished | "
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
+        
+        log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice)
         
         save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=CHECKPOINT_PATH, best_dice_val=best_dice_val)
         
