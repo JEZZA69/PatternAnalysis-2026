@@ -125,7 +125,7 @@ def save_checkpoint(epoch, model, optimizer, scheduler, path=CHECKPOINT_PATH, be
         'best_dice_val': best_dice_val
     }
     torch.save(checkpoint, path)
-    print(f"--> Checkpoint successfully saved to {path} (Epoch {epoch+1})")
+    print(f"--> Checkpoint successfully saved to {path}")
     
 def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):   
     """
@@ -218,9 +218,7 @@ def main():
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
         
         log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice)
-        
-        save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=CHECKPOINT_PATH, best_dice_val=best_dice_val)
-        
+                
         # Save best model checkpoint as the actual model based on the dice score. TODO: this might not be good enough. Should use the test set for this.
         if val_dice > best_dice_val:
             best_dice_val = val_dice
