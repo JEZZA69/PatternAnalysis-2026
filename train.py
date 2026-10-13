@@ -8,11 +8,13 @@ import torch_directml
 from model import *
 from dataset import get_oasis_dataloaders
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "OASIS")
+MODEL_SAVE_PATH = os.paht
 BATCH_SIZE = 32
 EPOCHS = 3
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 5e-5
 SAVE_PATH = "best_can_mode.pth"
 
 def calculate_dice_score(outputs: torch.Tensor, targets: torch.Tensor, num_classes: int = 4, smoothing: float = 1e-6) -> float:    
@@ -104,6 +106,16 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             
             if (batch_idx + 1) % 20 == 0:
                 print(f"Val Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f} | Batch Dice: {dice:.4f}")
+                
+    def save_model():
+        # The the model.
+        checkpoint = {
+            'epoch': epoch,
+            'model_state': model.state_dict(),
+            'optimizer_state': optimizer.state_dict(),
+            'scheduler_state': scheduler.state_dict(),
+        }
+        torch.save(checkpoint, CHECKPOINT_PATH)
 
     total_samples = len(dataloader.dataset)
     return running_loss / total_samples, running_dice / total_samples
