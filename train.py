@@ -15,7 +15,7 @@ MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
 CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
-EPOCHS = 2
+EPOCHS = 4
 LEARNING_RATE = 5e-5
 SAVE_PATH = "best_can_mode.pth"
 
@@ -59,7 +59,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         loss = criterion(outputs, targets)
         loss.backward()
         
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, foreach=False)
         
         optimizer.step()
 
@@ -180,8 +180,8 @@ def main():
     model = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device)
             
     # Optimization
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4, foreach=False)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
     
     # Load the checkpoint for iterative improvement
@@ -190,12 +190,14 @@ def main():
     print(f"Starting Training Loop from Epoch {start_epoch + 1}")
                 
     for epoch in range(start_epoch, end_epoch):
+        print(f"Epoch {epoch}")
+        
         train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device, num_classes)
         val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device, num_classes)
         
         scheduler.step(val_dice)
         
-        print(f"Epoch [{epoch + 1}/{end_epoch}] | "
+        print(f"Epoch [{epoch}/{end_epoch}] finished | "
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
         
