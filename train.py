@@ -20,7 +20,7 @@ EPOCHS = 4
 LEARNING_RATE = 5e-5
 SAVE_PATH = "best_can_model.pth"
 
-def calculate_dice_score(outputs, targets, num_classes: int = 4, smoothing: float = 1e-6) -> float:    
+def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> float:    
     """
     Computes macro-averaged Dice score across active classes.
     """
