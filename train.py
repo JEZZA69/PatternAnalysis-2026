@@ -18,9 +18,9 @@ CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
 BATCH_SIZE = 30 # 32 cuts it a little too close.
 EPOCHS = 4
 LEARNING_RATE = 5e-5
-SAVE_PATH = "best_can_mode.pth"
+SAVE_PATH = "best_can_model.pth"
 
-def calculate_dice_score(outputs: torch.Tensor, targets: torch.Tensor, num_classes: int = 4, smoothing: float = 1e-6) -> float:    
+def calculate_dice_score(outputs, targets, num_classes: int = 4, smoothing: float = 1e-6) -> float:    
     """
     Computes macro-averaged Dice score across active classes.
     """
