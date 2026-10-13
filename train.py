@@ -15,7 +15,7 @@ MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
 CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
-EPOCHS = 1
+EPOCHS = 2
 LEARNING_RATE = 5e-5
 SAVE_PATH = "best_can_mode.pth"
 
@@ -48,7 +48,6 @@ def calculate_dice_score(outputs: torch.Tensor, targets: torch.Tensor, num_class
 def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes):
     model.train()
     running_loss = 0.0
-    running_dice = 0.0
     total_samples = 0
 
     for batch_idx, (images, targets) in enumerate(dataloader):
@@ -65,11 +64,8 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         optimizer.step()
 
         running_loss += loss.item() * batch_size
-        # running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * batch_size
         total_samples += batch_size
-        
-        # current_avg_dice = running_dice / total_samples
-        
+                
         # Only print every 20 batches to minimize synchronous overhead
         if (batch_idx + 1) % 20 == 0:
             print(f"Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f}")
@@ -190,20 +186,20 @@ def main():
     
     # Load the checkpoint for iterative improvement
     start_epoch, best_dice_val = load_checkpoint(CHECKPOINT_PATH, model, optimizer=optimizer, scheduler=scheduler, device=device)
-    total_epochs_to_run = start_epoch + EPOCHS
-    print(f"Starting Training Loop from Epoch {start_epoch}")
+    end_epoch = start_epoch + EPOCHS
+    print(f"Starting Training Loop from Epoch {start_epoch + 1}")
                 
-    for epoch in range(start_epoch, total_epochs_to_run):
+    for epoch in range(start_epoch, end_epoch):
         train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device, num_classes)
         val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device, num_classes)
         
         scheduler.step(val_dice)
         
-        print(f"Epoch [{epoch+1}/{EPOCHS}] | "
+        print(f"Epoch [{epoch + 1}/{end_epoch}] | "
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
         
-        save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=CHECKPOINT_PATH)
+        save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=CHECKPOINT_PATH, best_dice_val=best_dice_val)
         
         # Save best model checkpoint as the actual model based on the dice score. TODO: this might not be good enough. Should use the test set for this.
         if val_dice > best_dice_val:
