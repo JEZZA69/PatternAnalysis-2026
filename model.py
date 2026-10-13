@@ -66,7 +66,7 @@ class ContextAggregationModule(nn.Module):
         return self.layer8(x)
     
 
-    # AI made this.
+# AI made this.
 if __name__ == "__main__":
     # Create a dummy batch resembling a real loader item: [Batch_Size, Channels, Height, Width]
     dummy_input = torch.randn(4, 1, 160, 192) 
