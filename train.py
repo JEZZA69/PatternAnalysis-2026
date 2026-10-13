@@ -128,7 +128,7 @@ def save_checkpoint(epoch, model, optimizer, scheduler, path=CHECKPOINT_PATH, be
         'scheduler_state': scheduler.state_dict(),
         'best_dice_val': best_dice_val
     }
-    torch.save(checkpoint, CHECKPOINT_PATH)
+    torch.save(checkpoint, path)
     print(f"--> Checkpoint successfully saved to {path} (Epoch {epoch+1})")
     
 def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):   
