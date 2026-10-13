@@ -210,6 +210,8 @@ def main():
             best_dice_val = val_dice
             torch.save(model.state_dict(), SAVE_PATH)
             print(f"--> Saved new best model checkpoint to {SAVE_PATH} (Dice: {best_dice_val:.4f})")
+            
+        save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=CHECKPOINT_PATH, best_dice_val=best_dice_val)
 
     print("Training complete!")
     
