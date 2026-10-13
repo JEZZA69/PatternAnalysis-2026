@@ -213,7 +213,7 @@ def main():
         
         scheduler.step(val_dice)
         
-        print(f"Epoch [{epoch}/{end_epoch}] finished | "
+        print(f"Epoch [{epoch}/{end_epoch - 1}] finished | "
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
         
