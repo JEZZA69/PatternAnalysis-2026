@@ -11,9 +11,11 @@ from dataset import get_oasis_dataloaders
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
 
-MODEL_SAVE_PATH = os.paht
-BATCH_SIZE = 32
-EPOCHS = 3
+MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
+CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
+
+BATCH_SIZE = 30 # 32 cuts it a little too close.
+EPOCHS = 1
 LEARNING_RATE = 5e-5
 SAVE_PATH = "best_can_mode.pth"
 
@@ -107,52 +109,91 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             if (batch_idx + 1) % 20 == 0:
                 print(f"Val Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f} | Batch Dice: {dice:.4f}")
                 
-    def save_model():
-        # The the model.
-        checkpoint = {
-            'epoch': epoch,
-            'model_state': model.state_dict(),
-            'optimizer_state': optimizer.state_dict(),
-            'scheduler_state': scheduler.state_dict(),
-        }
-        torch.save(checkpoint, CHECKPOINT_PATH)
-
-    total_samples = len(dataloader.dataset)
-    return running_loss / total_samples, running_dice / total_samples
-
-def main():
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch_directml.device(1) 
-    print(f"Training on: {device}")
+        total_samples = len(dataloader.dataset)
+        return running_loss / total_samples, running_dice / total_samples
     
+def evaluate_test_set(model, test_loader, criterion, device, num_classes=4):
+    model.eval() # Not necessary currently but just in case I call this sometime elsewhere I want it here.
+    
+    print("\nRunning final test set evaluation...")
+    test_loss, test_dice = validate_one_epoch(model, test_loader, criterion, device, num_classes) 
+    print(f"🎯 Final Test Loss: {test_loss:.4f} | Final Test Dice: {test_dice:.4f}")
+      
+def save_checkpoint(epoch, model, optimizer, scheduler, path=CHECKPOINT_PATH, best_dice_val=0.0):
+    """Saves a complete snapshot of the model to be resumed later. Prevents the need for long compute sessions, enabling incremental improvement of the model."""
+    checkpoint = {
+        'epoch': epoch,
+        'model_state': model.state_dict(),
+        'optimizer_state': optimizer.state_dict(),
+        'scheduler_state': scheduler.state_dict(),
+        'best_dice_val': best_dice_val
+    }
+    torch.save(checkpoint, CHECKPOINT_PATH)
+    print(f"--> Checkpoint successfully saved to {path} (Epoch {epoch+1})")
+    
+def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):   
+    """
+    Loads the checkpoint states into the model, optimizer, and scheduler. 
+    Returns the next epoch index to start training from and current best dice score on the validation set.
+    """
+    
+    # No checkpoint. Start from scratch. Epoch 0, 1.0 Dice score.
+    if not os.path.exists(path):
+        print("No checkpoint found. Starting fresh from Epoch 0!")
+        return 0, 0
+    
+    # Load the checkpoint
+    print(f"Loading checkpoint from {path}...")
+    checkpoint = torch.load(path, map_location=device)
+    
+    # Inject the checkpoint into the model.
+    model.load_state_dict(checkpoint['model_state'])
+    
+    # Restore optimizer
+    if optimizer is not None and 'optimizer_state' in checkpoint:
+        optimizer.load_state_dict(checkpoint['optimizer_state'])
+        
+    # Restore learning rate scheduler position
+    if scheduler is not None and 'scheduler_state' in checkpoint:
+        scheduler.load_state_dict(checkpoint['scheduler_state'])
+        
+    best_dice_val = checkpoint.get('best_dice_val', 0.0)
+    start_epoch = checkpoint['epoch'] + 1
+    
+    print(f"Resuming seamlessly! Next epoch will be Epoch {start_epoch + 1}.")
+    return start_epoch, best_dice_val
+    
+def main():    
+    # Make the correct device selection according to what computer I am using to run this.
     if torch.cuda.is_available():
         device = torch.device("cuda")
-        print(f"🏛️ University NVIDIA Cluster Active: {device}")
+        print(f"INFO: Oh! We are on Rangpur! AMAZING: {device}")
     else:
         try:
-            # Forces index 1 (9070 XT) at home instead of index 0 (Integrated Graphics)
+            # index 1 is my grpahics card and 0 is my integrated graphics.
             device = torch_directml.device(1) # Finally... a hardware acceleration fix that isn't rocm?
-            print(f"🚀 Home AMD GPU Active via DirectML: {device}")
+            print(f"INFO: Home AMD GPU Active via DirectML: {device}")
         except (ImportError, RuntimeError):
             device = torch.device("cpu")
-            print(f"⚠️ Falling back to CPU: {device}")
-    
+            print(f"WARN: Falling back to CPU: {device}")
+                
     # Data loaders
     train_loader, val_loader, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
     
-    # Model. 4 Classes in the OASIS dataset.
+    # The CAN   
     model = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device)
-    
+            
     # Optimization
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
     
-    best_val_dice = 0
-    
-    print("Starting Training Loop.")
-    
-    for epoch in range(EPOCHS):
+    # Load the checkpoint for iterative improvement
+    start_epoch, best_dice_val = load_checkpoint(CHECKPOINT_PATH, model, optimizer=optimizer, scheduler=scheduler, device=device)
+    total_epochs_to_run = start_epoch + EPOCHS
+    print(f"Starting Training Loop from Epoch {start_epoch} to {start_epoch + EPOCHS}...")
+                
+    for epoch in range(start_epoch, total_epochs_to_run):
         train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device, num_classes)
         val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device, num_classes)
         
@@ -162,13 +203,18 @@ def main():
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
         
-        # Save best model checkpoint based on validation Dice score
-        if val_dice > best_val_dice:
-            best_val_dice = val_dice
+        save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=CHECKPOINT_PATH)
+        
+        # Save best model checkpoint as the actual model based on the dice score. TODO: this might not be good enough. Should use the test set for this.
+        if val_dice > best_dice_val:
+            best_dice_val = val_dice
             torch.save(model.state_dict(), SAVE_PATH)
-            print(f"--> Saved new best model checkpoint to {SAVE_PATH} (Dice: {best_val_dice:.4f})")
+            print(f"--> Saved new best model checkpoint to {SAVE_PATH} (Dice: {best_dice_val:.4f})")
 
     print("Training complete!")
+    
+    print("Beginning Testing!")
+    evaluate_test_set(model, test_loader, criterion, device, num_classes=4)
     
 if __name__ == "__main__":
     main()
