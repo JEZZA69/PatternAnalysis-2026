@@ -213,7 +213,6 @@ def main():
     print(f"Starting Training Loop from Epoch {start_epoch + 1}")
                 
     for epoch in range(start_epoch, end_epoch):
-        print(f"Epoch {epoch}")
         
         train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device, num_classes)
         val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device, num_classes)
