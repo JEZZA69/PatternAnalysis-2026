@@ -16,9 +16,18 @@ MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
 CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
-EPOCHS = 20
+EPOCHS = 10 # Number of epochs to be run at once. Still saves the checkpoints and logs between epochs.
 LEARNING_RATE = 5e-5
-SAVE_PATH = "best_can_model.pth"
+
+# IMPORTANT: CHANGE THIS VALUE TO EITHER "can" or "unet". Sets the model to be run for testing.
+MODEL_NAME = "unet"
+
+if MODEL_NAME.lower() == "unet":
+    SAVE_PATH = "best_unet_model.pth"
+    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint_unet.pth")
+else:
+    SAVE_PATH = "best_can_model.pth"
+    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint_can.pth")
 
 def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> float:    
     """
@@ -168,20 +177,18 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
 
 LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "training_log.md")
 
-def log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice, path=LOG_FILE_PATH):
+def log_to_markdown_table(epoch, model_name, train_loss, train_dice, val_loss, val_dice, path=LOG_FILE_PATH):
     """Appends training and validation metrics to a Markdown table log file."""
     file_exists = os.path.exists(path)
     
     with open(path, "a", encoding="utf-8") as f:
         # If file doesn't exist, write the Markdown header and divider
         if not file_exists:
-            f.write("# CAN Training and Validation Log\n\n")
-            f.write("| Epoch | Train Loss | Train Dice | Val Loss | Val Dice |\n")
-            f.write("|:---:|:---:|:---:|:---:|:---:|\n")
-        
+            f.write("# Model Training and Validation Log\n\n")
+            f.write("| Epoch | Model | Train Loss | Train Dice | Val Loss | Val Dice |\n")
+            f.write("|:---:|:---|:---:|:---:|:---:|:---:|\n")        
         # Append the current epoch's row
-        f.write(f"| {epoch + 1} | {train_loss:.4f} | {train_dice:.4f} | {val_loss:.4f} | {val_dice:.4f} |\n")
-    
+        f.write(f"| {epoch + 1} | {model_name} | {train_loss:.4f} | {train_dice:.4f} | {val_loss:.4f} | {val_dice:.4f} |\n")    
     
 def get_device():
     """Fetches the optimal device to run the computation on, checks for rangpur CUDA gpu, if not, decides between my local AMD gpu and the cpu"""
@@ -199,6 +206,22 @@ def get_device():
             print(f"WARN: Falling back to CPU: {device}")
             
     return device
+
+def select_model(in_channels, num_classes, C, device):
+    """Selects model to run based on the value of MODEL_NAME"""
+    can = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device=device)
+    unet = Simple2DUNet(in_channels=1, num_classes=4, C=64).to(device=device)
+    model = None
+    
+    # Flexible model selection.
+    if MODEL_NAME.lower() == "unet":
+        print("Initializing Raw 2D U-Net Baseline Model...")
+        model = unet
+    else:
+        print("Initializing 2D Context Aggregation Network (CAN)...")
+        model = can
+        
+    return model
     
     
 def main():    
@@ -208,9 +231,9 @@ def main():
     # Data loaders
     train_loader, val_loader, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
     
-    # The CAN   
-    model = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device)
-            
+    # Based on user configuration, select either the 2D Can model or the 2D unet model.
+    model = select_model(in_channels=1, num_classes=num_classes, C=64, device=device)
+    
     # Optimization
     criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4, foreach=False)
@@ -223,18 +246,19 @@ def main():
                 
     for epoch in range(start_epoch, end_epoch):
         
+        # Train and Validate
         train_loss, train_dice = train_one_epoch(model, train_loader, criterion, optimizer, device, num_classes)
         val_loss, val_dice = validate_one_epoch(model, val_loader, criterion, device, num_classes)
         
         scheduler.step(val_dice)
         
+        # LOGGING
+        log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice)
         print(f"Epoch [{epoch}/{end_epoch - 1}] finished | "
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
-        
-        log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice)
                 
-        # Save best model checkpoint as the actual model based on the dice score. TODO: this might not be good enough. Should use the test set for this.
+        # Save best model checkpoint as the actual model based on the dice score from the validate test set.
         if val_dice > best_dice_val:
             best_dice_val = val_dice
             torch.save(model.state_dict(), SAVE_PATH)
