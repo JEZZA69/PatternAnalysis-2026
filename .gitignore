@@ -6,3 +6,4 @@ __pycache__
 *.pth
 visualisations/oasis_segmentation_visualization.py
 visualisations/visualise_single.py
+visualisations/architecture_visualisation.drawio
