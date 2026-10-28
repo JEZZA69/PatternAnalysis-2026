@@ -10,10 +10,10 @@ from dataset import get_oasis_dataloaders
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
-LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "training_log.md")
+LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "models/training_log.md")
 
-MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
-CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
+MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "models/model.pth")
+CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "models/checkpoint.pth")
 
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
@@ -25,10 +25,10 @@ MODEL_NAME = "unet"
 
 if MODEL_NAME.lower() == "unet":
     SAVE_PATH = "best_unet_model.pth"
-    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint_unet.pth")
+    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "models/checkpoint_unet.pth")
 else:
     SAVE_PATH = "best_can_model.pth"
-    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint_can.pth")
+    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "models/checkpoint_can.pth")
 
 def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> float:    
     """
@@ -258,7 +258,7 @@ def main():
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
                 
-        # Save best model checkpoint as the actual model based on the dice score from the validate test set.
+        # Save best model checkpoint as the best model for this run. Just in case the checkpoint explodes :(
         if val_dice > best_dice_val:
             best_dice_val = val_dice
             torch.save(model.state_dict(), SAVE_PATH)
