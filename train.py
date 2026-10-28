@@ -182,8 +182,10 @@ def log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice, pat
         # Append the current epoch's row
         f.write(f"| {epoch + 1} | {train_loss:.4f} | {train_dice:.4f} | {val_loss:.4f} | {val_dice:.4f} |\n")
     
-def main():    
-    # Make the correct device selection according to what computer I am using to run this.
+    
+def get_device():
+    """Fetches the optimal device to run the computation on, checks for rangpur CUDA gpu, if not, decides between my local AMD gpu and the cpu"""
+    
     if torch.cuda.is_available():
         device = torch.device("cuda")
         print(f"INFO: Oh! We are on Rangpur! AMAZING: {device}")
@@ -195,6 +197,13 @@ def main():
         except (ImportError, RuntimeError):
             device = torch.device("cpu")
             print(f"WARN: Falling back to CPU: {device}")
+            
+    return device
+    
+    
+def main():    
+    # Make the correct device selection according to what hardware this code is being run on
+    device = get_device()
                 
     # Data loaders
     train_loader, val_loader, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
