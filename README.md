@@ -13,13 +13,8 @@ The CAN architecture features 8 layers structured as a dense prediction pipeline
 The full feasability review can be found: ![here](feasibility-review.md)
 ## In summary:
  Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achieve a Sorensen-Dice similarity coefficient exceeding 0.90 while outperforming a standard U-Net baseline on local GPU hardware to ensure medical data privacy. Initial prototyping has successfully met this performance target, clearing the path to evaluate the model's multi-scale context aggregation against the baseline before expanding the architecture to a complex HipMRI dataset. Given the severe clinical safety risks of boundary hallucinations, a qualified human must always verify the outputs, while a fallback plan to an Improved 2D U-Net with residual skip connections is established if training instability or artifacts arise.
-
-
-
-
-   ## Executive summary
- - See feasibility-review.md for the full feasibility review
 # Data Pipeline & Reproducibility
+The 2D dataset
 # Quantitative Benchmarking
 # Qualitative Error Autopsy & Spatial Difference Maps
 # Engineering & Managerial Recommendation
@@ -34,4 +29,7 @@ Artificial intelligence was utilised extensively in the production of this proje
  - Matplotlib visualisation graph generation
 Frequently, Gemini was used as a consult for the broader scope of the project, and was incremental in providing direction and enlightenment for the codebase.
 # Literature and Further Reading
-See https://arxiv.org/pdf/1511.07122 for more info on CAN architecture
+ - F. Yu and V. Koltun, “Multi-scale context aggregation by dilated convolutions,” in Proc. ICLR,
+2016.
+ - O. Ronneberger, P. Fischer, and T. Brox, “U-Net: Convolutional networks for biomedical image
+segmentation,” in Proc. MICCAI, 2015, pp. 234–241.
