@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class ContextAggregationModule(nn.Module):
-    def __init__(self, in_channels=1, num_classes=24, C=64):
+    def __init__(self, in_channels=1, num_classes=4, C=64):
         super().__init__()
         
         # Exact 8 layer sequential architecture from Yu & Koltun (ICLR 2016)
@@ -15,7 +15,7 @@ class ContextAggregationModule(nn.Module):
         self.layer6 = nn.Conv2d(C,           C, kernel_size=3, padding=16, dilation=16)
         self.layer7 = nn.Conv2d(C,           C, kernel_size=3, padding=1, dilation=1)
         
-        # Layer 8 is a 1x1 convolution projecting to the 24 segmentation classes.
+        # Layer 8 is a 1x1 convolution projecting to the 4 segmentation classes.
         self.layer8 = nn.Conv2d(C, num_classes, kernel_size=1)
         
         self.relu = nn.ReLU(inplace=True)
@@ -64,3 +64,43 @@ class ContextAggregationModule(nn.Module):
         x = self.relu(self.layer6(x))
         x = self.relu(self.layer7(x))
         return self.layer8(x)
+    
+    
+## 2D UNET stuff below.
+class Simple2DUNet(nn.Module):
+    def __init__(self, in_channels=1, num_classes=4, C=32):
+        super().__init__()
+        
+        # Encoder
+        self.enc1_1 = nn.Conv2d(in_channels, C, 3, padding=1)
+        self.enc1_2 = nn.Conv2d(C, C, 3, padding=1)
+        
+        self.enc2_1 = nn.Conv2d(C, C*2, 3, padding=1)
+        self.enc2_2 = nn.Conv2d(C*2, C*2, 3, padding=1)
+        
+        self.pool = nn.MaxPool2d(2, 2)
+        
+        # Decoder
+        self.up1 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
+        self.dec1_1 = nn.Conv2d((C*2) + C, C, 3, padding=1)
+        self.dec1_2 = nn.Conv2d(C, C, 3, padding=1)
+        
+        self.out = nn.Conv2d(C, num_classes, 1)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        # Encoder
+        x1 = self.relu(self.enc1_1(x))
+        x1 = self.relu(self.enc1_2(x1))
+        
+        p1 = self.pool(x1)
+        x2 = self.relu(self.enc2_1(p1))
+        x2 = self.relu(self.enc2_2(x2))
+        
+        # Decoder with skip connection
+        d1 = self.up1(x2)
+        d1 = torch.cat([x1, d1], dim=1)
+        d1 = self.relu(self.dec1_1(d1))
+        d1 = self.relu(self.dec1_2(d1))
+        
+        return self.out(d1)
