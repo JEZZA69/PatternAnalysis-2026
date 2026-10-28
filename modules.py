@@ -6,7 +6,7 @@ class ContextAggregationModule(nn.Module):
         super().__init__()
         
         # Exact 8 layer sequential architecture from Yu & Koltun (ICLR 2016)
-        # Padding must equal dilation for 3x3 kernels to preserve spatial dimensions (160x192)
+        # Padding must equal dilation for 3x3 kernels to preserve spatial dimensions (256x256)
         self.layer1 = nn.Conv2d(in_channels, C, kernel_size=3, padding=1, dilation=1)
         self.layer2 = nn.Conv2d(C,           C, kernel_size=3, padding=1, dilation=1)
         self.layer3 = nn.Conv2d(C,           C, kernel_size=3, padding=2, dilation=2)
