@@ -31,8 +31,9 @@ class OASIS2DDataset(Dataset):
         img_np = np.array(img, dtype=np.float32) / 255.0  # Scale pixel intensities to [0, 1]
         
         mask_np = np.array(mask, dtype=np.int64)          # Class labels as integers
+        
         # The labels in the oasis dataset are 4-classes. [0, 85, 170, 255], so we need to divide them to make the CrossEntropyLoss work. Because we need classes 1,2,3,4.
-        mask_np = mask_np // 85 # 0->0, 85->1, 170->2, 255->3
+        mask_np = mask_np // 85
 
         # Convert into standard PyTorch Tensors
         image_tensor = torch.tensor(img_np, dtype=torch.float32).unsqueeze(0) # [1, H, W]
