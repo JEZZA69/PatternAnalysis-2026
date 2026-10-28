@@ -1,8 +1,13 @@
 # Project Overview & Working Principles
- - Problem statement
- - WHy segmentation matters
- - How 2D CAN works
- - ARchitecture Diagram / Visualisation
+## Problem Statement & Why Segmeentaion Matters
+Automated neuroimaging analysis is critical for detecting progressive structural changes, such as ventricular enlargement and cortical atrophy in the brain. 
+In this project, we tackle the OASIS 2D brain tissue segmentation challenge, which requires delineating structures like cortical gray matter, white matter, and cerebrospinal fluid (CSF) across 2D MRI slices. Precise anatomical contouring is essential, but it is complicated by intensity inhomogeneities (bias fields), partial volume effects at boundaries, and complex, fine gyral folds.
+## How 2D CAN Works
+Standard convolutional networks downsample feature maps, which can wash out fine spatial details. The 2D Context Aggregation Network (CAN) utilizes dilated convolutions to systematically expand the network's receptive field without reducing spatial resolution or discarding high-resolution anatomical details. Furthermore, we implement identity weight initializaiton tricks to ensure stable gradient flow through the multi-scale layers.
+## Architecture Visualisation
+![Architecture Visualisation](visualisations/architecture_visualisation.drawio.png)
+The CAN architecture features 8 layers,
+
 # Midpoint Feasibility Review
    ## Executive summary
  - See feasibility-review.md for the full feasibility review
