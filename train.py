@@ -15,6 +15,7 @@ LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "training_log.md")
 MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "model.pth")
 CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "checkpoint.pth")
 
+
 BATCH_SIZE = 30 # 32 cuts it a little too close.
 EPOCHS = 10 # Number of epochs to be run at once. Still saves the checkpoints and logs between epochs.
 LEARNING_RATE = 5e-5
@@ -175,7 +176,6 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
     print(f"Resuming seamlessly! Next epoch will be Epoch {start_epoch + 1}.")
     return start_epoch, best_dice_val
 
-LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "training_log.md")
 
 def log_to_markdown_table(epoch, model_name, train_loss, train_dice, val_loss, val_dice, path=LOG_FILE_PATH):
     """Appends training and validation metrics to a Markdown table log file."""
@@ -253,7 +253,7 @@ def main():
         scheduler.step(val_dice)
         
         # LOGGING
-        log_to_markdown_table(epoch, train_loss, train_dice, val_loss, val_dice)
+        log_to_markdown_table(epoch, MODEL_NAME, train_loss, train_dice, val_loss, val_dice)
         print(f"Epoch [{epoch}/{end_epoch - 1}] finished | "
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
