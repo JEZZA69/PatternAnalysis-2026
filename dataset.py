@@ -5,10 +5,8 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import numpy as np
 
-# OASIS Brain 2D dataset. 
-# Found here: https://github.com/adalca/medical-datasets/blob/master/neurite-oasis.md
-
 class OASIS2DDataset(Dataset):
+    """OASIS Brain 2D dataset"""
     def __init__(self, images_dir, masks_dir):
         """
         Directly loads paired images and masks from their respective pre-split folders.
