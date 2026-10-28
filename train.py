@@ -176,7 +176,6 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
     print(f"Resuming seamlessly! Next epoch will be Epoch {start_epoch + 1}.")
     return start_epoch, best_dice_val
 
-
 def log_to_markdown_table(epoch, model_name, train_loss, train_dice, val_loss, val_dice, path=LOG_FILE_PATH):
     """Appends training and validation metrics to a Markdown table log file."""
     file_exists = os.path.exists(path)
