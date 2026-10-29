@@ -84,6 +84,28 @@ Datasets and `.pth` weights are **not** committed to the repository, as required
 ### The Spatial Context vs Clinical Boundary Utility Dilemma
 Standard global Sorensen-Dice similarity coefficiencts can hide major local boundary failures. In neuroimaging segmentatino, high global Dice scores often coexist with topologically invalid tissue disconnections along narrow cortical gyri or boundary erosion between Gray Matter and CSF. This investigation evaluates whether preserving full 256x256 spatial resolution via dilated context aggregation (CAN) genuinely eliminates boundary errors ocmpared to a pooling-based encoder-decoder (2D U-Net).
 
+### Quantitative Benchmarking
+Evaluated on a test split completely isolated from training and validation steps, the following data was recorded during inferencing of the test split (544 slices) (see [predict.py](predict.py)).
+| Model     | Background    | CSF   | Grey matter   | White matter  | Mean Dice (tissue labels)     | Mean IoU (Tissue Labels)  |
+|---                |---|---|---|---|---|---|
+| Baseline U-Net    | 0.9760 | 0.6803 | 0.8289 | 0.9021 | 0.8038 | 0.6817 |
+| CAN (C = 64)      | 0.9914 | 0.8646 | 0.9152 | 0.9527 | 0.9108 | 0.8383 |
+
+Key Result: the 2D CAN surpasses the assessment threshold of >0.9 DICE score, with a DICE on tissue labels (excluding background) of 91.08%, yielding substantial gains in fine structures such as CSF, (+18.43%), and Gray Matter (+8.63%) relative to the baseline U-Net.
+
+### Resource Profiling Table
+| Efficiency Metric                 | Baseline 2D U-Net | 2D CAN (C=64) | Trade-Off Impact  |
+|---                                |---                |---            |---                |
+|Total Parameters|406852|222468|Can requires 56.60% fewer parameters, greatly reducing model storage size|
+|Peak GPU VRAM (30 batch)           |2.1 GB             |1.0 GB         |CAN reduces VRAM consumption by 52.4%, as it avoids storing heavy multi-scale encoder skip-connection caches.            |
+| Inference Latency (per slice)     |11.05 ms           |11.54 ms       |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.                      |
+| Full Resolution Feature Maps      |Downsampled to 128x128| Retained at 25x256|Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explic pixel-level precision.                                                                                  |
+
+### Learning Curves
+![model learning curves](visualisations/learning_curves.png)
+
+
+TODO: find out where this slots in
 ### 2D Context Aggregation Network (CAN)
 | Layer | Operation | Kernel | Dilation | Padding | Output channels |
 |---|---|---|---|---|---|
@@ -112,13 +134,9 @@ Layers 2–7 are initialised with all weights zero except the centre tap of matc
 
 ### Quantitative benchmark
 
-| Model | Background | CSF | Grey matter | White matter | Mean Dice (tissue labels) | Mean IoU |
-|---|---|---|---|---|---|---|
-| Baseline U-Net | 0.9760 | 0.6803 | 0.8289 | 0.9021 | 0.8468 | 0.7495 |
-| CAN (C = 64) | 0.9914 | 0.8646 | 0.9152 | 0.9527 | 0.9310 | 0.8744 |
 
-### Learning Curves
-![model learning curves](visualisations/learning_curves.png)
+
+
 
 ### Boundary-sensitive metrics
 Global Dice can mask boundary errors, which is the core of the assessment's dilemma.
