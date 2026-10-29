@@ -38,6 +38,35 @@ Note: While the model achieves a Dice score exceeding the required 0.90 on the p
 | Loss | Cross-entropy with label smoothing ε = 0.05 |
 | Gradient clipping | Global norm, max 1.0 |
 
+### Reproducing the results
+```# Environment (exact versions required by the assessment)
+python --version        # TODO[e.g. 3.11.x]
+pip install torch==2.4.1 torch-directml==0.2.5.dev240914 pillow==12.3.0 numpy==2.5.4 matplotlib==3.11.2
+
+# Data: place the OASIS folder in the project root so that ./OASIS/ contains the six keras_png_slices_* folders
+python dataset.py       
+python train.py         # set MODEL_NAME = "can" or "unet" in train.py first
+python predict.py       
+```
+Datasets and `.pth` weights are **not** committed to the repository, as required by the assessment. 
+
+## Models
+### 2D Context Aggregation Network (CAN)
+| Layer | Operation | Kernel | Dilation | Padding | Output channels |
+|---|---|---|---|---|---|
+| 1 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
+| 2 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
+| 3 | Conv + ReLU | 3×3 | 2 | 2 | 64 |
+| 4 | Conv + ReLU | 3×3 | 4 | 4 | 64 |
+| 5 | Conv + ReLU | 3×3 | 8 | 8 | 64 |
+| 6 | Conv + ReLU | 3×3 | 16 | 16 | 64 |
+| 7 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
+| 8 | Conv (logits) | 1×1 | — | 0 | 4 |  
+
+For each 3×3 layer, padding equals dilation, so the spatial size stays at 256×256 (the output size of a convolution is $H + 2p - d(k-1)$, which equals $H$ when $p = d$ and $k = 3$). 
+
+### Baseline 2D U-Net (`Simple2DUNet`, C = 64)
+The baseline has one encoder level, one max-pool, one bilinear upsample and a skip connection, with 406,852 parameters. This is a *shallow* U-Net, not the Improved U-Net of Isensee et al. The assessment's Easy-difficulty baseline is stated in terms of a standard model, so this is a valid comparison, but the conclusions apply to this shallow baseline specifically and should be stated that way in the results.
 
 ## Quantitative Benchmarking
 
