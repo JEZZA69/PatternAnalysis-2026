@@ -150,8 +150,7 @@ The CSF gain is the headline finding. CSF occupies thin, high-curvature regions,
 | Inference Latency (per slice)     |11.05 ms               |11.54 ms           |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.              |
 | Full Resolution Feature Maps      |Downsampled to 128x128 |Retained at 25x256 |Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explic pixel-level precision.                                                                                  |
 
-The CAN is simultaneously smaller, cheaper (in memory) and more accurate than the U-Net (while being almost as fast!) 
-
+The CAN is simultaneously smaller, cheaper (in memory) and more accurate than the U-Net. It spends its compute on width at full resolution rather than depth through a bottleneck. The only cost is latency, and +0.49ms/slice is immaterial. Profiles were collected on DirectML; CUDA numbers on Rangpur will differ absolutely but the ordering should hold.
 
 ## Results & Visualisations
 ### Learning Curves
