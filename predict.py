@@ -56,6 +56,97 @@ def safe_ratio(num, den):
     return float(num) / float(den) if den > 0 else float("nan")
 
 
+def evaluate(model, loader, device):
+    """
+    Runs inference on the full loader and returns a dict of metrics.
+ 
+    Global counts per class c over the whole test set:
+        I_c = |pred==c AND gt==c|     (intersection)
+        P_c = |pred==c|               (prediction cardinality)
+        T_c = |gt==c|                 (target cardinality)
+ 
+        Dice_c = 2 I_c / (P_c + T_c)
+        IoU_c  = I_c / (P_c + T_c - I_c)
+    """
+    inter = np.zeros(NUM_CLASSES, dtype=np.int64)
+    pred_card = np.zeros(NUM_CLASSES, dtype=np.int64)
+    tgt_card = np.zeros(NUM_CLASSES, dtype=np.int64)
+    per_slice_dice = []  # rows: slices; cols: classes (NaN where undefined)
+ 
+    with torch.no_grad():
+        for images, targets in loader:
+            outputs = model(images.to(device))
+            preds = torch.argmax(outputs, dim=1).cpu().numpy()   # [B, H, W]
+            gts = targets.numpy()                                # [B, H, W]
+ 
+            for p, g in zip(preds, gts):
+                slice_dice = np.full(NUM_CLASSES, np.nan)
+                for c in range(NUM_CLASSES):
+                    pc = (p == c)
+                    gc = (g == c)
+                    i = np.logical_and(pc, gc).sum()
+                    pn, tn = pc.sum(), gc.sum()
+ 
+                    inter[c] += i
+                    pred_card[c] += pn
+                    tgt_card[c] += tn
+ 
+                    slice_dice[c] = safe_ratio(2 * i, pn + tn)
+                per_slice_dice.append(slice_dice)
+ 
+    union = pred_card + tgt_card - inter
+    dice = np.array([safe_ratio(2 * inter[c], pred_card[c] + tgt_card[c]) for c in range(NUM_CLASSES)])
+    iou = np.array([safe_ratio(inter[c], union[c]) for c in range(NUM_CLASSES)])
+ 
+    per_slice_dice = np.array(per_slice_dice)  # [N_slices, NUM_CLASSES]
+ 
+    # Per-slice mean over tissue classes, skipping undefined (NaN) entries
+    slice_tissue_mean = np.nanmean(per_slice_dice[:, TISSUE_CLASSES], axis=1)
+ 
+    return {
+        "dice": dice,
+        "iou": iou,
+        "mean_dice_all": np.nanmean(dice),
+        "mean_iou_all": np.nanmean(iou),
+        "mean_dice_tissue": np.nanmean(dice[TISSUE_CLASSES]),
+        "mean_iou_tissue": np.nanmean(iou[TISSUE_CLASSES]),
+        "slice_dice_mean": np.nanmean(slice_tissue_mean),
+        "slice_dice_std": np.nanstd(slice_tissue_mean),
+        "num_slices": len(per_slice_dice),
+    }
+    
+def sanity_check_iou_dice(dice, iou, tol=1e-6):
+    """
+    Identity: IoU = Dice / (2 - Dice). Derivation:
+        D = 2I/(U+I) with U = P+T-I  =>  D(U+I) = 2I  =>  DU = (2-D)I  =>  I/U = D/(2-D)
+    If this fails, the Dice or IoU formula has a bug.
+    """
+    for c in range(NUM_CLASSES):
+        if np.isnan(dice[c]):
+            continue
+        expected = dice[c] / (2 - dice[c])
+        assert abs(iou[c] - expected) < tol, (
+            f"Dice/IoU mismatch for class {c}: IoU={iou[c]:.6f}, D/(2-D)={expected:.6f}"
+        )
+    print("Sanity check passed: IoU = Dice / (2 - Dice) for every class.")
+
+def fmt(x):
+    return "n/a" if np.isnan(x) else f"{x:.4f}"
+ 
+def print_and_save_report(metrics, tag):
+    d, u = metrics["dice"], metrics["iou"]
+ 
+    header = f"{'Class':<15}{'Dice':>10}{'IoU':>10}"
+    print("\n=== Test set results ({} slices, model = {}) ===".format(metrics["num_slices"], tag.upper()))
+    print(header)
+    print("-" * len(header))
+    for c in range(NUM_CLASSES):
+        print(f"{CLASS_NAMES[c]:<15}{fmt(d[c]):>10}{fmt(u[c]):>10}")
+    print("-" * len(header))
+    print(f"{'Mean (all 4)':<15}{fmt(metrics['mean_dice_all']):>10}{fmt(metrics['mean_iou_all']):>10}")
+    print(f"{'Mean (tissue)':<15}{fmt(metrics['mean_dice_tissue']):>10}{fmt(metrics['mean_iou_tissue']):>10}")
+    print(f"\nPer-slice tissue Dice: {metrics['slice_dice_mean']:.4f} +/- {metrics['slice_dice_std']:.4f}")
+
 def create_overlay_cmap():
     """Returns a ListedColormap for discrete class segmentation masks."""
     return ListedColormap(CLASS_COLORS)
