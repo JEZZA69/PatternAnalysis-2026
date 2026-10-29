@@ -186,7 +186,7 @@ Artificial intelligence was utilised in the production of this project. Artifici
  - Debugging
  - Code cleaning and refactoring 
  - Matplotlib visualisation graph generation
-Frequently, Gemini was used as a consult for the broader scope of the project, and was incremental in providing direction and enlightenment for the codebase, so while it was helpful in generating boilerplate, the insight and information gleamed from short chat sessions was essential during broad codebase formulation.
+Frequently, Gemini was used as a consult for the broader scope of the project, and was incremental in providing direction and enlightenment for the codebase, so while it was helpful in generating boilerplate, the insight and information gleamed from short chat sessions was essential during broad codebase formulation. No 'agentic' AI was used in any way.
 
 ## Literature and Further Reading
  - F. Yu and V. Koltun, “Multi-scale context aggregation by dilated convolutions,” in Proc. ICLR,
