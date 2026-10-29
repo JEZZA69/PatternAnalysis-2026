@@ -31,13 +31,17 @@ The baseline has one encoder level, one max-pool, one bilinear upsample and a sk
 
 ### Repo layout and usage TODO: update this
 ```
-.
-├── dataset.py     # OASIS loader, normalisation, mask decoding, split integrity check
-├── model.py       # ContextAggregationNetwork and Simple2DUNet definitions
-├── train.py       # Training loop, LR scheduling, checkpointing, metric logging
-├── predict.py     # Test-split inference, Dice/IoU computation, overlay generation
+PatternAnalysis-2026/
+├── recognition \ 2D_CAN_s48823939/
+│   ├── __pycache__/
+│   ├── dataset.py      # Dataset, contains OASIS dataloaders
+│   ├── modules.py      # Contains the CAN and Simple-U-Net models
+│   ├── predict.py      # Used for testing the models on the test set and generating numbers
+│   └── train.py        # Used to incrementally train the model
 ├── visualisations/
-└── README.md
+├── .gitignore
+├── LICENSE.txt
+├── README.md
 ```
 
 ## Dependencies & Reproducibility
@@ -209,10 +213,25 @@ These findings apply to the specific baseline used in this report: a shallow U-N
 
 ## Engineering Recommendation
 
+### Answering the core dilemma
 
-## Results & Visualisations
-### Learning Curves
+The dilemma asks whether multi-scale context genuinely eliminates hazardous boundary and slice-transition errors, or merely smooths easy ecentral slices at a large compute cost. Based on the above discussion, it eliminates a specific, clinically meaningful class of errors (internal topological failures), but not the class that matters the most at the anatomical periphery. The CAN's +10.7 pp tissue-mean Dice over the shallow U-Net is real and concentrated where pooling is known to hurt (CSF +18.4 pp, grey matter +8.6 pp, white matter +5.1 pp), and the autopsies show why: without a bottleneck, the CAN cannot hallucinate a black hole inside a homogeneous CSF clump (Case 2) and cannot over-extend tissue past a locally-evident boundary (Case 3). Those are exactly the topological failures global Dice hides.
+But it does not close the gap on thin high-frequency strips at the brain/skull interface (Case 1), where the U-Net's skip connections recover detail that dilated sampling attenuates. Context aggregation buys internal continuity, it does not buy peripheral sensitivity. And it buys the former for less compute at 45.3% fewer parameters, 52.4% less VRAM, and +4.4% latency - which inverts the dilemma's premise that context must cost 5-10x.
+
+### Recommendation to the project manager
+
+Adopt the 2D CAN (C=64) as the annotation assistant, with a mandatory human edit step. The human must be fully informed on the limitations of the model, so they cannot simply trust it blindly. The clinician is going to adjust contours anyway, so it is the models job to save time by highlighting and aggregating the main segments of the image, so the clinician can go through and adjust the finer details. The CAN's failure mode, omission of thin peripheral strips, is visible and correctable on review. The shallow U-Net's failure mode, interpolaton artefacts and over-extension past the true contour, is harder to spot because it looksl ike confident tissue. For an annotation-assistant workflow, the conservative model is the safer one, and here it is also the cheaper and more accurate model.
+
+The CAN wins on accuracy, cost, and resistance to hallucination, and loses only on thin peripheral strips; for a human-reviewed annotation assistant those are the right trade-offs to make. Adopt CAN, keep the human in the loop, pursue the hybrid, and hold 3D until slice-transition errors are demonstrated to dominate.
+
+## Visualisations
+### Learning Curves During Training
 ![model learning curves](visualisations/learning_curves.png)
+### CAN model predictions vs ground truth (4 patients)
+![](visualisations/oasis_can_predictions.png)
+### U-Net model predictions vs ground truth (4 patients) 
+![](visualisations/oasis_unet_predictions.png)
+
 
 ## Artificial Intelligence Usage Disclosure
 Artificial intelligence was utilised in the production of this project. Artificial intelligence models, particularly the free version of gemini present in google search, was particularly useful for:
