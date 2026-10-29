@@ -10,10 +10,10 @@ from dataset import get_oasis_dataloaders
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
-LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "models/training_log.md")
+MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
+os.makedirs(MODELS_DIR, exist_ok=True)
 
-MODEL_SAVE_PATH = os.path.join(SCRIPT_DIR, "models/model.pth")
-CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "models/checkpoint.pth")
+LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "models/training_log.md")
 
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
@@ -24,11 +24,11 @@ LEARNING_RATE = 5e-5
 MODEL_NAME = "unet"
 
 if MODEL_NAME.lower() == "unet":
-    SAVE_PATH = "best_unet_model.pth"
-    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "models/checkpoint_unet.pth")
+    SAVE_PATH = os.path.join(MODELS_DIR, "best_unet_model.pth")
+    CHECKPOINT_PATH = os.path.join(MODELS_DIR, "checkpoint_unet.pth")
 else:
-    SAVE_PATH = "best_can_model.pth"
-    CHECKPOINT_PATH = os.path.join(SCRIPT_DIR, "models/checkpoint_can.pth")
+    SAVE_PATH = os.path.join(MODELS_DIR, "best_can_model.pth")
+    CHECKPOINT_PATH = os.path.join(MODELS_DIR, "checkpoint_can.pth")
 
 def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> float:    
     """
