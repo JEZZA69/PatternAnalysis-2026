@@ -186,8 +186,37 @@ def visualise_samples(model, loader, device, tag, num_samples=4):
     print(f"--> Sample figure saved to: {save_path}")
 
 def determine_parameters(model):
+    """Returns the total parameters of the loaded model."""
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     return total_params
+    
+import time
+
+
+def measure_inference_latency(model, sample_input, device, num_warmup=10, num_repeats=50):
+    """Measures average inference latency per slice in milliseconds (ms)."""
+    model.eval()
+    single_slice_input = sample_input[:1].to(device)  # Take a batch of 1
+
+    # Warmup steps to clear CUDA/backend kernel compilation overhead
+    with torch.no_grad():
+            for _ in range(num_warmup):
+                _ = model(single_slice_input)
+
+        # I haven't used Rangpur once for this project but this is here anyways. 
+    if "cuda" in str(device):
+        torch.cuda.synchronize(device)
+
+    start_time = time.time()
+    with torch.no_grad():
+        for _ in range(num_repeats):
+            _ = model(single_slice_input)
+            if "cuda" in str(device):
+                torch.cuda.synchronize(device)
+
+    total_time = time.time() - start_time
+    latency_ms = (total_time / num_repeats) * 1000.0
+    return latency_ms
 
 if __name__ == "__main__":
     # Imported here so the module can be imported without DirectML installed
@@ -200,6 +229,11 @@ if __name__ == "__main__":
  
     model, weights_file, tag = build_model(MODEL_TYPE, device)
     model = load_weights(model, weights_file, device)
+    
+    sample_imgs, _ = next(iter(test_loader))
+    latency = measure_inference_latency(model, sample_imgs, device)
+
+    print(f"Inference Latency (per slice): {latency:.2f} ms")
  
     metrics = evaluate(model, test_loader, device)
     sanity_check_iou_dice(metrics["dice"], metrics["iou"])
