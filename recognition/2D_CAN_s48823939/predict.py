@@ -15,7 +15,7 @@ from train import PROJECT_ROOT, DATA_DIR, MODELS_DIR
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "visualisations")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-MODEL_TYPE = "unet"      # 'can' or 'unet'
+MODEL_TYPE = "can"      # 'can' or 'unet'
 BATCH_SIZE = 8
 NUM_CLASSES = 4
 CLASS_NAMES = ["Background", "CSF", "Grey Matter", "White Matter"]
@@ -130,7 +130,7 @@ def sanity_check_iou_dice(dice, iou, tol=1e-6):
 def fmt(x):
     return "n/a" if np.isnan(x) else f"{x:.4f}"
  
-def print_and_save_report(metrics, tag):
+def print_and_save_report(model, metrics, tag):
     d, u = metrics["dice"], metrics["iou"]
  
     header = f"{'Class':<15}{'Dice':>10}{'IoU':>10}"
@@ -237,5 +237,5 @@ if __name__ == "__main__":
  
     metrics = evaluate(model, test_loader, device)
     sanity_check_iou_dice(metrics["dice"], metrics["iou"])
-    print_and_save_report(metrics, tag)
+    print_and_save_report(model, metrics, tag)
     visualise_samples(model, test_loader, device, tag)
