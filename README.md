@@ -23,10 +23,10 @@ The project operates on a focused scale using the 2D OASIS brain dataset (/home/
  - Baseline Performance: The model must outperform a standard U-Net model under the same dataset conditions in order to evaluate if "incorporating advanced multi-scale context can genuinely eliminate these hazardous boundary and slice-transition errors compared to a 2D baseline."
  - Operational constraints: The model must run comfortably on workstation hardware or local GPUs. Given that patients sensitive medical data must be kept on the hospital's private network.
 ### Model Choice & Course Concepts
- - Dataset Configuration
-    The preprocessed OASIS 2D brain dataset (located on rangpur) consists of pre-segmented groups of train, validate, and test datasets. This separation enforces strict air gap separation to prevent critical data leakage and over-fitting.
+ - **Model Architecture**: The chosen architecture is a 2D Context Aggregation Network (CAN) on the OASIS dataset (easy tier). Instead of downsampling or pooling, it gains wider, multi-scale contextual information by systematically expanding the receptive field. This enables more context to be captured by the network, enabling greater precision on the pixel level, making it ideal for identifying fine details.
+ - **Dataset Configuration**: The preprocessed OASIS 2D brain dataset (located on rangpur) consists of pre-segmented groups of train, validate, and test datasets. This separation enforces strict air gap separation to prevent critical data leakage and over-fitting.
  - The Oasis Brain 2D dataset consists of 2D MRI brain slices of several patients.
- - Model Architecture: The chosen architecture is a 2D Context Aggregation Network (CAN) (both normal/easy tiers). Instead of downsampling or pooling, it gains wider, multi-scale contextual information by systematically expanding the receptive field. This enables more context to be captured by the network, enabling greater precision on the pixel level, making it ideal for identifying fine details.
+
 
 ### Preliminary Feasibility evidence
  - Empirical Validation: Initial exploratory prototyping has already been successfully executed, with a working 2D CAN model trained and evaluated to achieve a Dice score exceeding 90% (>0.90).
@@ -42,16 +42,19 @@ The project operates on a focused scale using the 2D OASIS brain dataset (/home/
 ### In summary:
 Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achieve a Sorensen-Dice similarity coefficient exceeding 0.90 while outperforming a standard U-Net baseline on local GPU hardware to ensure medical data privacy. Initial prototyping has successfully met this performance target, clearing the path to evaluate the model's multi-scale context aggregation against the baseline before expanding the architecture to a complex HipMRI dataset. Given the severe clinical safety risks of boundary hallucinations, a qualified human must always verify the outputs, while a fallback plan to an Improved 2D U-Net with residual skip connections is established if training instability or artifacts arise.
 
-## Data Pipeline & Reproducibility
- ### Dataset and Splits
- - Source: preprocessed OASIS 2D slices `1keras_png_slices_*` folders, with paired masks in `keras_png_slices_seg_`. This dataset was downloaded from the UQ Rangpur cluster and underwent zero preprocessing before use in this repository.
- - Splits: the provided train / validate / test folders are used as-is. The splits for training, validation, and testing are roughly 85%, 10%, and 5%  (9664,1120,544 png files respectively)
- - Patient-level seperation has been handled by the provided dataset. There is no overlap of patient ID numbers between the train/validation/test datasets. 
+## Data Pipeline, Processing & Reproducibility
 
-### Preprocessing
-1. Images are loaded as grayscale (`L`) and normalised to `[0, 1]` by dividing by 255.
-2. Masks are integer-coded. The raw values are `{0, 85, 170, 255}`, and integer division by 85 maps them to class indices `{0, 1, 2, 3}`.
-3. Images are shaped `[1, H, W]` and masks `[H, W]` to match `CrossEntropyLoss`.
+### Dataset Structure & Split Justification
+The OASIS 2D brain dataset consists of paired single-channel PNG images and 4-class segmentation masks divided across pre-defined directories:
+ - **Training Set**: 9,664 slices (~85%)
+ - **Validation Set**: 1,120 slices (~10%)
+ - **Test Set**: 544 slices (~5%)
+The dataset enforces strict patient-level separation. All slices originating from a specific patient volume reside exclusively within a single partition. There is no overlap of patient ID numbers between any of the directories, ensuring no risk of cross-slice patient memorisation and ensuring no overfitting or leakage.
+
+### Preprocessing Pipeline
+1. **Image Normalisation:** Images are loaded as grayscale (`L`) and normalised to `[0, 1]` by dividing by 255.
+2. **Mask Categorical Encoding:** Masks are integer-coded. The raw values are `{0, 85, 170, 255}`, and integer division by 85 maps them to class indices `{0, 1, 2, 3}`.
+3. **Tensor Formatting:** Images are shaped `[1, H, W]` and masks `[H, W]` to match `CrossEntropyLoss`.
 4. No data augmentation is currently applied. 
 Note: While the model achieves a Dice score exceeding the required 0.90 on the provided split, the absence of augmentations (such as random rotations, scaling, or elastic deformations) elaves the network potentially vulnerable to overfitting or poor generalisation when exposed to MRI scans from different scanners with varying intensity profiles. Future work should introduce spatial and intensity augmentations to improve robustness.
 
@@ -59,27 +62,28 @@ Note: While the model achieves a Dice score exceeding the required 0.90 on the p
 | Setting | Value |
 |---|---|
 | Batch size | 30 |
-| Epochs | 10 per run, resumable from checkpoint |
-| Optimiser | AdamW, lr = 5e-5, weight decay = 1e-4 |
+| Optimiser | AdamW (lr = 5e-5, weight decay = 1e-4) |
 | Scheduler | ReduceLROnPlateau (mode = max on val Dice, factor 0.5, patience 3) |
-| Loss | Cross-entropy with label smoothing ε = 0.05 |
+| Loss | Multi-class Cross-Entropy with label smoothing $\epsilon$ = 0.05 |
 | Gradient clipping | Global norm, max 1.0 |
 
-
-
-### Dependencies
-```# Environment (exact versions required by the assessment)
-python --version        # 3.12
+### Dependencies & Reproducibility Setup
+```# Environment (Python 3.12)
+python --version        # 3.12.x
 pip install torch==2.4.1 torch-directml==0.2.5.dev240914 pillow==12.3.0 numpy==2.5.4 matplotlib==3.11.2
 
-# Data: place the OASIS folder in the project root so that ./OASIS/ contains the six keras_png_slices_* folders
-python dataset.py       
-python train.py         # set MODEL_NAME = "can" or "unet" in train.py first
-python predict.py       
+# Repository Execution Instructions
+# Ensure OASIS dataset is placed in root directory: ./OASIS/
+python dataset.py   # Verifies data loader and split integrity
+python train.py     # Set MODEL_NAME = "can" or "unet" in script settings
+python predict.py   # Executes inference, generates quantitative metrics and visualization overlays      
 ```
 Datasets and `.pth` weights are **not** committed to the repository, as required by the assessment. 
 
-## Models
+## Investigation of the Open Research Dilemma
+### The Spatial Context vs Clinical Boundary Utility Dilemma
+Standard global Sorensen-Dice similarity coefficiencts can hide major local boundary failures. In neuroimaging segmentatino, high global Dice scores often coexist with topologically invalid tissue disconnections along narrow cortical gyri or boundary erosion between Gray Matter and CSF. This investigation evaluates whether preserving full 256x256 spatial resolution via dilated context aggregation (CAN) genuinely eliminates boundary errors ocmpared to a pooling-based encoder-decoder (2D U-Net).
+
 ### 2D Context Aggregation Network (CAN)
 | Layer | Operation | Kernel | Dilation | Padding | Output channels |
 |---|---|---|---|---|---|
