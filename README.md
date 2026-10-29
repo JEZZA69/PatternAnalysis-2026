@@ -26,9 +26,21 @@ Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achie
 2. Masks are integer-coded. The raw values are `{0, 85, 170, 255}`, and integer division by 85 maps them to class indices `{0, 1, 2, 3}`.
 3. Images are shaped `[1, H, W]` and masks `[H, W]` to match `CrossEntropyLoss`.
 4. No data augmentation is currently applied. 
-While the model achieves a Dice score exceeding the required 0.90 on the provided split, the absence of augmentations (such as random rotations, scaling, or elastic deformations) elaves the network potentially vulnerable to overfitting or poor generalisation when exposed to MRI scans from different scanners with varying intensity profiles. Future work should introduce spatial and intensity augmentations to improve robustness.
+Note: While the model achieves a Dice score exceeding the required 0.90 on the provided split, the absence of augmentations (such as random rotations, scaling, or elastic deformations) elaves the network potentially vulnerable to overfitting or poor generalisation when exposed to MRI scans from different scanners with varying intensity profiles. Future work should introduce spatial and intensity augmentations to improve robustness.
+
+### Training configuration
+| Setting | Value |
+|---|---|
+| Batch size | 30 |
+| Epochs | 10 per run, resumable from checkpoint |
+| Optimiser | AdamW, lr = 5e-5, weight decay = 1e-4 |
+| Scheduler | ReduceLROnPlateau (mode = max on val Dice, factor 0.5, patience 3) |
+| Loss | Cross-entropy with label smoothing ε = 0.05 |
+| Gradient clipping | Global norm, max 1.0 |
+
 
 ## Quantitative Benchmarking
+
 ## Qualitative Error Autopsy & Spatial Difference Maps
 ## Engineering & Managerial Recommendation
  - Trade-off synthesis, the pros and cons of using the 
