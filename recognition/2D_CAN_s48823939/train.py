@@ -71,7 +71,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         loss = criterion(outputs, targets)
         
         # --- NAN GUARD --- 
-        # Had alot of issues with gradient explosion so this was added
+        # Had a lot of issues with gradient explosion so this was added
         if torch.isnan(loss):
             print(f"WARN: NaN loss detected at batch {batch_idx+1}. Skipping batch to prevent corruption.")
             optimizer.zero_grad()
@@ -198,7 +198,7 @@ def get_device():
         print(f"INFO: Oh! We are on Rangpur! AMAZING: {device}")
     else:
         try:
-            # index 1 is my grpahics card and 0 is my integrated graphics.
+            # index 1 is my graphics card and 0 is my integrated graphics.
             device = torch_directml.device(1) # Finally... a hardware acceleration fix that isn't rocm?
             print(f"INFO: Home AMD GPU Active via DirectML: {device}")
         except (ImportError, RuntimeError):

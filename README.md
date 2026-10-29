@@ -5,8 +5,8 @@ Automated neuroimaging analysis is critical for detecting progressive structural
 
 ### How the 2D CAN works
 Standard convolutional networks downsample feature maps, which can wash out fine spatial details. The 2D Context Aggregation Network (CAN) utilises dilated convolutions to systematically expand the network's receptive field without reducing spatial resolution or discarding high-resolution anatomical details. 
-Layers 1-6 apply 3x3 convolutions with exponentially increasing dilation factors (1,1,4,8,16), aggregating multi-scale context withoug pooling or striding. Layer 7 is a 3x3 refinement (dilation 1) and layer 8 is 1x1 projection from `C = 64` intermediate channels to the 4 target classes. Padding is set equal to the dilation factor for every 3x3 kernel, so the output size is `H + 2p - d(k-1) = H` -> The network is a stack of shape-preserving layers producing a dense prediction at the native 256x256 resolution.
-Training stability is handled by an identity initialisation trick, where layers 2-7 begin with all weights zero, except the centre tap [1,1] of matching channel pairs, which is set to 1 (all biases zero). Each such layer therefore computes `ReLU(x)` for non-negative inputs, making the untrained network approximately an identiy map from layer onward. Only the first and last layers (randomly initialised) transform the input at initialisation. This prevents early boundary hallucination from random noise and gives clean gradient flow during backpropogation.
+Layers 1-6 apply 3x3 convolutions with exponentially increasing dilation factors (1,1,4,8,16), aggregating multi-scale context without pooling or striding. Layer 7 is a 3x3 refinement (dilation 1) and layer 8 is 1x1 projection from `C = 64` intermediate channels to the 4 target classes. Padding is set equal to the dilation factor for every 3x3 kernel, so the output size is `H + 2p - d(k-1) = H` -> The network is a stack of shape-preserving layers producing a dense prediction at the native 256x256 resolution.
+Training stability is handled by an identity initialisation trick, where layers 2-7 begin with all weights zero, except the centre tap [1,1] of matching channel pairs, which is set to 1 (all biases zero). Each such layer therefore computes `ReLU(x)` for non-negative inputs, making the untrained network approximately an identity map from layer 7 onward. Only the first and last layers (randomly initialised) transform the input at initialisation. This prevents early boundary hallucination from random noise and gives clean gradient flow during backpropagation.
 ![Architecture Visualisation](visualisations/architecture_visualisation.drawio.png)
 Figure 1: CAN architecture - 8 shape-preserving layers with increasing dilation factor, followed by a 1x1 logits projection.
 
@@ -27,9 +27,7 @@ For each 3×3 layer, padding equals dilation, so the spatial size stays at 256×
 ### Baseline 2D U-Net (`Simple2DUNet`, C = 64)
 The baseline has one encoder level, one max-pool, one bilinear upsample and a skip connection, with 406,852 parameters. This is a *shallow* U-Net, not the Improved U-Net of Isensee et al. The assessment's Easy-difficulty baseline is stated in terms of a standard model, so this is a valid comparison, but the conclusions apply to this shallow baseline specifically and should be stated that way in the results.
 
-
-
-### Repo layout and usage TODO: update this
+### Repo layout and usage
 ```
 PatternAnalysis-2026/
 ├── recognition \ 2D_CAN_s48823939/
@@ -49,7 +47,7 @@ PatternAnalysis-2026/
 python --version        # 3.12.x
 pip install torch==2.4.1 torch-directml==0.2.5.dev240914 pillow==12.3.0 numpy==2.5.4 matplotlib==3.11.2
 
-# Ensure OASIS dataset is placed in root directory: ./OASIS/
+# Ensure OASIS dataset is placed in root directory: PatternAnalysis-2026/OASIS/
 python dataset.py   # Verifies data loader and split integrity
 python modules.py   # Contains the nn.Module class files for both the CAN and U-Net implementations in this report. 
 python train.py     # Set MODEL_NAME = "can" or "unet" in script settings
@@ -68,13 +66,13 @@ Since adjacent slices from the same patient differ by only millimetres, the data
 
 Because no patient appears in more than one split, the test-set Dice of 0.9108 (tissue mean) is an estimate of performance on *unseen patients*, not unseen slices of seen patients. Which is the correct generalisation target for a clinical deployment claim.
 
-With 9,664 training slices, the model has ample data, so a large train fraciton is justified. 1,120 validation slices are more than sufficient to drive `ReduceLROnPlateau` (patience 3) and model selection without adding noise to the LR decision. 544 test slices is small in absolute terms but yields tight Dice confidence intervals. For a per-class Dice near 0.9, the binomial standard error is approximately `sqrt(0.9*0.1/544) ~= 0.013`, i.e. roughly -+ 1.3 pp at 1 SE. This is fine for comparing models whose gaps are 5-18pp (see the benchmarking table), though it is marginal for the ~1pp differences between similarly-performing variants, and any future comparison of close models should report confidence intervals or paired tests rather than point estimates alone. 
+With 9,664 training slices, the model has ample data, so a large train fraction is justified. 1,120 validation slices are more than sufficient to drive `ReduceLROnPlateau` (patience 3) and model selection without adding noise to the LR decision. 544 test slices is small in absolute terms but yields tight Dice confidence intervals. For a per-class Dice near 0.9, the binomial standard error is approximately `sqrt(0.9*0.1/544) ~= 0.013`, i.e. roughly -+ 1.3 pp at 1 SE. This is fine for comparing models whose gaps are 5-18pp (see the benchmarking table), though it is marginal for the ~1pp differences between similarly-performing variants, and any future comparison of close models should report confidence intervals or paired tests rather than point estimates alone. 
 
 ### Preprocessing
 1. **Image Normalisation:** Images are loaded as grayscale (`L`) and normalised to `[0, 1]` by dividing by 255.
 2. **Mask Categorical Encoding:** Masks are integer-coded. The raw values are `{0, 85, 170, 255}`, and integer division by 85 maps them to class indices `{0, 1, 2, 3}`.
 3. **Tensor Formatting:** Images are shaped `[1, H, W]` and masks `[H, W]` to match `CrossEntropyLoss`.
-4. **No data augmentation is applied**. This is a known generalistion gap: While the model achieves a Dice score exceeding the required 0.90 on the provided split, the absence of augmentations (such as random rotations, scaling, or elastic deformations) elaves the network potentially vulnerable to overfitting or poor generalisation when exposed to MRI scans from different scanners with varying intensity profiles. Future work should introduce spatial and intensity augmentations to improve robustness.
+4. **No data augmentation is applied**. This is a known generalisation gap: While the model achieves a Dice score exceeding the required 0.90 on the provided split, the absence of augmentations (such as random rotations, scaling, or elastic deformations) leaves the network potentially vulnerable to overfitting or poor generalisation when exposed to MRI scans from different scanners with varying intensity profiles. Future work should introduce spatial and intensity augmentations to improve robustness.
 
 ### Training configuration
 | Setting | Value |
@@ -90,7 +88,7 @@ With 9,664 training slices, the model has ample data, so a large train fraciton 
 ### Intended user
 The intended user of the model are doctors, specifically hospital staff such as neuroradiologists and neuro-imaging researchers requiring automated, high-precision tissue segmentation templates for structural MRI scans.
 ### Purpose
-To build, evaluate, and benchmark a 2D Context Aggragation Network (CAN) that automates anatomical contouring. In this context, segmentation refers to the process of splitting training data into masks to assist clinicians in structural analysis.
+To build, evaluate, and benchmark a 2D Context Aggregation Network (CAN) that automates anatomical contouring. In this context, segmentation refers to the process of splitting training data into masks to assist clinicians in structural analysis.
 ### Scope
 The project operates on a focused scale using the 2D OASIS brain dataset (/home/groups/comp3710/OASIS), which contains preprocessed structural brain MRI slices and corresponding ground-truth segmentation masks.
 ### Acceptance criteria
@@ -99,7 +97,7 @@ The project operates on a focused scale using the 2D OASIS brain dataset (/home/
  - **Operational constraints:** The model must run comfortably on workstation hardware or local GPUs. Given that patients sensitive medical data must be kept on the hospital's private network.
 ### Model Choice & Course Concepts
  - **Model Architecture**: The chosen architecture is a 2D Context Aggregation Network (CAN) on the OASIS dataset (easy tier). Instead of downsampling or pooling, it gains wider, multi-scale contextual information by systematically expanding the receptive field. This enables more context to be captured by the network, enabling greater precision on the pixel level, making it ideal for identifying fine details.
- - **Dataset Configuration**: The preprocessed OASIS 2D brain dataset (located on rangpur) consists of pre-segmented groups of train, validate, and test datasets. This separation enforces strict air gap separation to prevent critical data leakage and over-fitting.
+ - **Dataset Configuration**: The preprocessed OASIS 2D brain dataset (located on the UQ Rangpur cluster) consists of pre-segmented groups of train, validate, and test datasets. This separation enforces strict air gap separation to prevent critical data leakage and over-fitting.
  - The Oasis Brain 2D dataset consists of 2D MRI brain slices of several patients.
 
 ### Preliminary Feasibility evidence
@@ -146,13 +144,13 @@ pred  = model(img.unsqueeze(0)).argmax(dim=1).squeeze(0)   # [256, 256]
 `predict.py` runs this loop over all 544 test slices and reports per-class Dice/IoU.
 
 ### Outputs
-Quantitative. Per class Dice and IoU plus the tissue-mean Dice reported inthe 'Results' section. Note: `calculate_dice_score` averages over all four classes *including backgorund*, which inflates the mean of both models. The table in the results reports the tissue-mean (excludes background) because that is the metric the >0.90 gate refers to in the report task sheet.
+Quantitative. Per class Dice and IoU plus the tissue-mean Dice reported in the 'Results' section. Note: `calculate_dice_score` averages over all four classes *including background*, which inflates the mean of both models. The table in the results reports the tissue-mean (excludes background) because that is the metric the >0.90 gate refers to in the report task sheet.
 
 ## Investigation of the Open Research Dilemma
 ### The Spatial Context vs Clinical Boundary Utility Dilemma
-Standard global Sorensen-Dice similarity coefficiencts can hide major local boundary failures. In neuroimaging segmentatino, high global Dice scores often coexist with topologically invalid tissue disconnections along narrow cortical gyri or boundary erosion between Gray Matter and CSF. Because background dominates the image, the model can score very well overall while still failing miserably to identify tissue. This investigation asks whether preserving full 256x256 spatial resolution via dilated context aggregation (CAN) genuinely eliminates boundary errors compared to a pooling-based encoder-decoder (2D U-Net).
+Standard global Sorensen-Dice similarity coefficients can hide major local boundary failures. In neuroimaging segmentation, high global Dice scores often coexist with topologically invalid tissue disconnections along narrow cortical gyri or boundary erosion between Gray Matter and CSF. Because background dominates the image, the model can score very well overall while still failing miserably to identify tissue. This investigation asks whether preserving full 256x256 spatial resolution via dilated context aggregation (CAN) genuinely eliminates boundary errors compared to a pooling-based encoder-decoder (2D U-Net).
 
-Caveat: The baseline (`Simple2DUNet`) has as single encoder leve, one max-pool, one bilinear upsample and one skip connection... it is a shallow U-Net, not the improved U-Net of isensee et al. Conclusions therefore apply to *this* baseline specifically: "the CAN beats a shallow 2D U-Net", not "the CAN beats U-Net in general" Further extension of this report could involve quantitative and qualitative testing of more advanced U-Net architectures. 
+Caveat: The baseline (`Simple2DUNet`) has a single encoder level, one max-pool, one bilinear upsample and one skip connection... it is a shallow U-Net, not the improved U-Net of isensee et al. Conclusions therefore apply to *this* baseline specifically: "the CAN beats a shallow 2D U-Net", not "the CAN beats U-Net in general" Further extension of this report could involve quantitative and qualitative testing of more advanced U-Net architectures. 
 
 ### Quantitative Benchmarking
 Evaluated on a test split completely isolated from training and validation steps, the following data was recorded during inferencing of the test split (544 slices) (see [predict.py](predict.py)).
@@ -172,8 +170,8 @@ The CSF gain is the headline finding. CSF occupies thin, high-curvature regions,
 |---                                |---                    |---                |---                |
 |Total Parameters|406852|222468|Can requires 45.3% fewer parameters, greatly reducing model storage size|
 |Peak GPU VRAM (30 batch)           |2.1 GB                 |1.0 GB             |CAN reduces VRAM consumption by 52.4%, as it avoids storing heavy multi-scale encoder skip-connection caches.      |
-| Inference Latency (per slice)     |11.05 ms               |11.54 ms           |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.              |
-| Full Resolution Feature Maps      |Downsampled to 128x128 |Retained at 25x256 |Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explic pixel-level precision.                                                                                  |
+| Inference Latency (per slice)     |11.05 ms               |11.54 ms           |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.               |
+| Full Resolution Feature Maps      |Downsampled to 128x128 |Retained at 25x256 |Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explicit pixel-level precision. |
 
 The CAN is simultaneously smaller, cheaper (in memory) and more accurate than the U-Net. It spends its compute on width at full resolution rather than depth through a bottleneck. The only cost is latency, and +0.49ms/slice is immaterial. Profiles were collected on DirectML; CUDA numbers on Rangpur will differ absolutely but the ordering should hold.
 
@@ -186,7 +184,7 @@ At the outer boundary of the brain (the skull/scalp interface), the ground truth
 
 The U-Net's success over the CAN in this particular autopsy is attributable to its skip connections. Skip connections in U-shaped networks are known to recover fine-grained details and high-frequency components such as boundaries that would otherwise be lost through downsampling. The full-resolution encoder features carried directly to the decoder therefore preserve the local edge evidence needed to detect a 3–5 px strip.
 
-The CAN's failure is a direct consequence of the properties of dilated convolution. Dilated filters do not possess positional knowledge about pixels on semantically meaningful contours, which can lead to ambiguous predictions on object boundaries. Moreover, dilated convolution attenutates high-frequency responses due to sparse sampling. The total number of sampled pixels remains unchanged while the receptive field grows, so the fraction o fthe receptive field actually observed becomes small. A 3-5px strip of CSF provides exactly the kind of high-frequency boundary signal that dilation supresses. The CAN's large receptive field integrates over a sparse grid that samples background and tissue across the boundary, but wihtout explicit boundary cues it cannot resolve the thin strip at the interface. This is not a failure of resolution, the CAN operates at 256x256, but a failure of boundary sensitivity inherent to the dilated convolution operator.
+The CAN's failure is a direct consequence of the properties of dilated convolution. Dilated filters do not possess positional knowledge about pixels on semantically meaningful contours, which can lead to ambiguous predictions on object boundaries. Moreover, dilated convolution attenuates high-frequency responses due to sparse sampling. The total number of sampled pixels remains unchanged while the receptive field grows, so the fraction of the receptive field actually observed becomes small. A 3-5px strip of CSF provides exactly the kind of high-frequency boundary signal that dilation suppresses. The CAN's large receptive field integrates over a sparse grid that samples background and tissue across the boundary, but without explicit boundary cues it cannot resolve the thin strip at the interface. This is not a failure of resolution, the CAN operates at 256x256, but a failure of boundary sensitivity inherent to the dilated convolution operator.
 
 #### Case 2: Internal CSF continuity (CAN wins)
 ![autopsy-2](visualisations/autopsy-Page-2.drawio.png)
@@ -215,12 +213,12 @@ These findings apply to the specific baseline used in this report: a shallow U-N
 
 ### Answering the core dilemma
 
-The dilemma asks whether multi-scale context genuinely eliminates hazardous boundary and slice-transition errors, or merely smooths easy ecentral slices at a large compute cost. Based on the above discussion, it eliminates a specific, clinically meaningful class of errors (internal topological failures), but not the class that matters the most at the anatomical periphery. The CAN's +10.7 pp tissue-mean Dice over the shallow U-Net is real and concentrated where pooling is known to hurt (CSF +18.4 pp, grey matter +8.6 pp, white matter +5.1 pp), and the autopsies show why: without a bottleneck, the CAN cannot hallucinate a black hole inside a homogeneous CSF clump (Case 2) and cannot over-extend tissue past a locally-evident boundary (Case 3). Those are exactly the topological failures global Dice hides.
+The dilemma asks whether multi-scale context genuinely eliminates hazardous boundary and slice-transition errors, or merely smooths easy central slices at a large compute cost. Based on the above discussion, it eliminates a specific, clinically meaningful class of errors (internal topological failures), but not the class that matters the most at the anatomical periphery. The CAN's +10.7 pp tissue-mean Dice over the shallow U-Net is real and concentrated where pooling is known to hurt (CSF +18.4 pp, grey matter +8.6 pp, white matter +5.1 pp), and the autopsies show why: without a bottleneck, the CAN cannot hallucinate a black hole inside a homogeneous CSF clump (Case 2) and cannot over-extend tissue past a locally-evident boundary (Case 3). Those are exactly the topological failures global Dice hides.
 But it does not close the gap on thin high-frequency strips at the brain/skull interface (Case 1), where the U-Net's skip connections recover detail that dilated sampling attenuates. Context aggregation buys internal continuity, it does not buy peripheral sensitivity. And it buys the former for less compute at 45.3% fewer parameters, 52.4% less VRAM, and +4.4% latency - which inverts the dilemma's premise that context must cost 5-10x.
 
 ### Recommendation to the project manager
 
-Adopt the 2D CAN (C=64) as the annotation assistant, with a mandatory human edit step. The human must be fully informed on the limitations of the model, so they cannot simply trust it blindly. The clinician is going to adjust contours anyway, so it is the models job to save time by highlighting and aggregating the main segments of the image, so the clinician can go through and adjust the finer details. The CAN's failure mode, omission of thin peripheral strips, is visible and correctable on review. The shallow U-Net's failure mode, interpolaton artefacts and over-extension past the true contour, is harder to spot because it looksl ike confident tissue. For an annotation-assistant workflow, the conservative model is the safer one, and here it is also the cheaper and more accurate model.
+Adopt the 2D CAN (C=64) as the annotation assistant, with a mandatory human edit step. The human must be fully informed on the limitations of the model, so they cannot simply trust it blindly. The clinician is going to adjust contours anyway, so it is the models job to save time by highlighting and aggregating the main segments of the image, so the clinician can go through and adjust the finer details. The CAN's failure mode, omission of thin peripheral strips, is visible and correctable on review. The shallow U-Net's failure mode, interpolation artefacts and over-extension past the true contour, is harder to spot because it looks like confident tissue. For an annotation-assistant workflow, the conservative model is the safer one, and here it is also the cheaper and more accurate model.
 
 The CAN wins on accuracy, cost, and resistance to hallucination, and loses only on thin peripheral strips; for a human-reviewed annotation assistant those are the right trade-offs to make. Adopt CAN, keep the human in the loop, pursue the hybrid, and hold 3D until slice-transition errors are demonstrated to dominate.
 
@@ -235,7 +233,7 @@ The CAN wins on accuracy, cost, and resistance to hallucination, and loses only 
 
 ## Artificial Intelligence Usage Disclosure
 Artificial intelligence was utilised in the production of this project. Artificial intelligence models, particularly the free version of gemini present in google search, was particularly useful for:
- - Ideation and consolodation
+ - Ideation and consolidation
  - Boilerplate code generation
  - Debugging
  - Code cleaning and refactoring 
