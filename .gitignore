@@ -7,3 +7,6 @@ __pycache__
 visualisations/oasis_segmentation_visualization.py
 visualisations/visualise_single.py
 visualisations/architecture_visualisation.drawio
+visualisations/autopsy.drawio
+visualisations/.$autopsy.drawio.bkp
+visualisations/.$autopsy.drawio.dtmp
