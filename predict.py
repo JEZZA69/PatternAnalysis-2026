@@ -22,11 +22,8 @@ NUM_CLASSES = 4
 CLASS_NAMES = ["Background", "CSF", "Grey Matter", "White Matter"]
 TISSUE_CLASSES = [1, 2, 3]  # exclude background for the tissue-only means
 
-
 # Custom color palette for OASIS 4-class segmentation
-# Class 0: Background (Transparent), Class 1: CSF, Class 2: Gray Matter, Class 3: White Matter
 CLASS_COLORS = ['none', '#e6194b', '#3cb44b', '#4363d8']
-CLASS_NAMES = ['Background', 'CSF', 'Gray Matter', 'White Matter']
 
 
 def build_model(model_type, device):
@@ -36,7 +33,28 @@ def build_model(model_type, device):
         return model.to(device), "best_unet_model.pth", "unet"
     model = ContextAggregationModule(in_channels=1, num_classes=NUM_CLASSES, C=64)
     return model.to(device), "best_can_model.pth", "can"
- 
+
+def load_model_weights(model, weights_filename, device='cpu'):
+    """Safely loads model weights, checking both script directory and project root."""
+    
+    weights_path = os.path.join(MODELS_DIR, weights_filename) # Inside models/ folder (matches train.py)    
+
+    if weights_path:
+        state_dict = torch.load(weights_path, map_location=device)
+        if 'model_state' in state_dict:
+            model.load_state_dict(state_dict['model_state'])
+        else:
+            model.load_state_dict(state_dict)
+        print(f"Successfully loaded weights from {weights_path}")
+    else:
+        print(f"WARNING: Weights file '{weights_filename}' not found. Running with uninitialized weights.")
+    return model
+
+
+def safe_ratio(num, den):
+    """Return num/den, or NaN when the denominator is zero (class absent everywhere)."""
+    return float(num) / float(den) if den > 0 else float("nan")
+
 
 def create_overlay_cmap():
     """Returns a ListedColormap for discrete class segmentation masks."""
@@ -103,21 +121,7 @@ def visualise_samples(model=None, dataloader=None, device='cpu', num_samples=4, 
     plt.close()
     print(f"--> Saved visual output to: {save_path}")
 
-def load_model_weights(model, weights_filename, device='cpu'):
-    """Safely loads model weights, checking both script directory and project root."""
-    
-    weights_path = os.path.join(MODELS_DIR, weights_filename) # Inside models/ folder (matches train.py)    
 
-    if weights_path:
-        state_dict = torch.load(weights_path, map_location=device)
-        if 'model_state' in state_dict:
-            model.load_state_dict(state_dict['model_state'])
-        else:
-            model.load_state_dict(state_dict)
-        print(f"Successfully loaded weights from {weights_path}")
-    else:
-        print(f"WARNING: Weights file '{weights_filename}' not found. Running with uninitialized weights.")
-    return model
 
 if __name__ == "__main__":
     from train import get_device
