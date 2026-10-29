@@ -10,6 +10,25 @@ Training stability is handled by an identity initialisation trick, where layers 
 ![Architecture Visualisation](visualisations/architecture_visualisation.drawio.png)
 Figure 1: CAN architecture - 8 shape-preserving layers with increasing dilation factor, followed by a 1x1 logits projection.
 
+### The 2D Context Aggregation Network (CAN)
+| Layer | Operation | Kernel | Dilation | Padding | Output channels |
+|---|---|---|---|---|---|
+| 1 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
+| 2 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
+| 3 | Conv + ReLU | 3×3 | 2 | 2 | 64 |
+| 4 | Conv + ReLU | 3×3 | 4 | 4 | 64 |
+| 5 | Conv + ReLU | 3×3 | 8 | 8 | 64 |
+| 6 | Conv + ReLU | 3×3 | 16 | 16 | 64 |
+| 7 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
+| 8 | Conv (logits) | 1×1 | — | 0 | 4 |  
+
+For each 3×3 layer, padding equals dilation, so the spatial size stays at 256×256 (the output size of a convolution is $H + 2p - d(k-1)$, which equals $H$ when $p = d$ and $k = 3$). 
+
+### Baseline 2D U-Net (`Simple2DUNet`, C = 64)
+The baseline has one encoder level, one max-pool, one bilinear upsample and a skip connection, with 406,852 parameters. This is a *shallow* U-Net, not the Improved U-Net of Isensee et al. The assessment's Easy-difficulty baseline is stated in terms of a standard model, so this is a valid comparison, but the conclusions apply to this shallow baseline specifically and should be stated that way in the results.
+
+
+
 ### Repo layout and usage TODO: update this
 ```
 .
@@ -58,7 +77,6 @@ The dataset enforces strict patient-level separation. All slices originating fro
 | Scheduler | ReduceLROnPlateau (mode = max on val Dice, factor 0.5, patience 3) |
 | Loss | Multi-class Cross-Entropy with label smoothing $\epsilon$ = 0.05 |
 | Gradient clipping | Global norm, max 1.0 |
-
 
 
 ## Feasibility Review:
@@ -179,63 +197,19 @@ This is a known failure mode of U-Net-style architectures. They tend to over-seg
 
 The CAN lacks the global bottleneck that would support such an aggressive hallucination past the bounds of the training masks. Its predictions are constrained by the local evidence sampled at the full resolution. This is the same property that causes its failure in Case 1: without a global prior, it cannot infer a boundary that local texture does not support. Here, that conservatism works in its favour — it does not extend tissue where the local evidence does not justify it. The CAN is “nearsighted,” and in this instance the near-sighted model is closer to the truth.
 
-#### The Macro vs Micro Trade-off
+#### The macro vs micro trade-off
 The U-Net is a macroscopic generalist. Its pooling-based bottleneck and skip connections give it both a coarse global representation and access to high-frequency edge detail, making it comparatively robust at the outer boundary of the anatomy when that boundary is locally detectable. But the same bottleneck introduces interpolation fragility (Case 2), and its global hypothesis can override local boundary evidence (Case 3).
 
 The CAN is a microscopic specialist. Its full-resolution, dilation-based design preserves internal continuity and resists unfounded extension because it never compresses the image and never upsamples. But dilated convolution suppresses the high-frequency boundary cues needed for thin structures, while also providing no lacks positional knowledge about contours, leaving it blind to boundaries that require more than local texture to resolve (Case 1).
 
 These findings apply to the specific baseline used in this report: a shallow U-Net with one encoder level, one max-pool, one bilinear upsample and one skip connection. We do not establish that the CAN is superior to U-Net architectures in general. It is, however, strongly suggested that a hybrid design, pairing a global-context pathway with a full-resolution, non-upsampling decoder for fine continuity, would address both failure modes simultaneously.
 
+## Engineering Recommendation
+
+
 ## Results & Visualisations
 ### Learning Curves
 ![model learning curves](visualisations/learning_curves.png)
-
-### Boundary-sensitive metrics
-Global Dice can mask boundary errors, which is the core of the assessment's dilemma.
-
-
-## Qualitative Error Autopsy & Spatial Difference Maps
-### CAN: Ground truth vs predictions
-![oasis CAN predictions](visualisations/oasis_can_predictions.png)
-While the performance of the CAN is not as bad as the U-Net, there are still issues with edge detection
-
-
-### UNET: Ground truch vs predictions
-![oasis UNET predictions](visualisations/oasis_unet_predictions.png)
-The limitations of the U-NET architecture can be seen at a glance, 
-
-
-TODO: find out where this slots in
-### 2D Context Aggregation Network (CAN)
-| Layer | Operation | Kernel | Dilation | Padding | Output channels |
-|---|---|---|---|---|---|
-| 1 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
-| 2 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
-| 3 | Conv + ReLU | 3×3 | 2 | 2 | 64 |
-| 4 | Conv + ReLU | 3×3 | 4 | 4 | 64 |
-| 5 | Conv + ReLU | 3×3 | 8 | 8 | 64 |
-| 6 | Conv + ReLU | 3×3 | 16 | 16 | 64 |
-| 7 | Conv + ReLU | 3×3 | 1 | 1 | 64 |
-| 8 | Conv (logits) | 1×1 | — | 0 | 4 |  
-
-For each 3×3 layer, padding equals dilation, so the spatial size stays at 256×256 (the output size of a convolution is $H + 2p - d(k-1)$, which equals $H$ when $p = d$ and $k = 3$). 
-
-### Baseline 2D U-Net (`Simple2DUNet`, C = 64)
-The baseline has one encoder level, one max-pool, one bilinear upsample and a skip connection, with 406,852 parameters. This is a *shallow* U-Net, not the Improved U-Net of Isensee et al. The assessment's Easy-difficulty baseline is stated in terms of a standard model, so this is a valid comparison, but the conclusions apply to this shallow baseline specifically and should be stated that way in the results.
-
-### Why the CAN uses full resolution
-A U-Net trades resolution for context through pooling. The CAN instead spends its compute on full-resolution feature maps. This favours thin structures and boundary precision, at a cost in activation memory, as Section 3.4 showed.
-
-### Identity initialisation
- 
-Layers 2–7 are initialised with all weights zero except the centre tap of matching channel pairs, which is set to 1; all biases are zero. Each such layer then computes $\mathrm{ReLU}(x)$ for non-negative inputs, so the untrained network is approximately an identity map from layer 2 onward. The first layer (random) and the output layer (random) are the only places where the input is transformed at initialisation.
-
-
-
-
-## Engineering & Managerial Recommendation
- - Trade-off synthesis, the pros and cons of using the 
- - Summary of safety concernts
 
 ## Artificial Intelligence Usage Disclosure
 Artificial intelligence was utilised in the production of this project. Artificial intelligence models, particularly the free version of gemini present in google search, was particularly useful for:
