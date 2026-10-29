@@ -180,13 +180,11 @@ This is a known failure mode of U-Net-style architectures. They tend to over-seg
 The CAN lacks the global bottleneck that would support such an aggressive hallucination past the bounds of the training masks. Its predictions are constrained by the local evidence sampled at the full resolution. This is the same property that causes its failure in Case 1: without a global prior, it cannot infer a boundary that local texture does not support. Here, that conservatism works in its favour — it does not extend tissue where the local evidence does not justify it. The CAN is “nearsighted,” and in this instance the near-sighted model is closer to the truth.
 
 #### The Macro vs Micro Trade-off
-These two cases perfectly encapsulate the research dilemma.
+The U-Net is a macroscopic generalist. Its pooling-based bottleneck and skip connections give it both a coarse global representation and access to high-frequency edge detail, making it comparatively robust at the outer boundary of the anatomy when that boundary is locally detectable. But the same bottleneck introduces interpolation fragility (Case 2), and its global hypothesis can override local boundary evidence (Case 3).
 
- - The U-Net is a *macroscopic generalist*. Its global context makes it arobust at the outer edges of the anatomy, but its low-resolution bottleneck makes it prone to interpolation artifacts and boundary breaks. 
- - The CAN is a *microscopic specialist*. Its full-resolution, dilated design makes it flawless at internal continuity (killing the U-Net's black-dot artifact), but it lacks the macroscopic shape prior to accurately delineate the absolute outer boundary of the brain.
+The CAN is a microscopic specialist. Its full-resolution, dilation-based design preserves internal continuity and resists unfounded extension because it never compresses the image and never upsamples. But dilated convolution suppresses the high-frequency boundary cues needed for thin structures, while also providing no lacks positional knowledge about contours, leaving it blind to boundaries that require more than local texture to resolve (Case 1).
 
-This confirms that neither architecture is universally superior. For clinical deployment, these specific findings strongly suggest that a hybrid approach, using a U-Net for global context, and a CAN decoder for fine continuity 
-
+These findings apply to the specific baseline used in this report: a shallow U-Net with one encoder level, one max-pool, one bilinear upsample and one skip connection. We do not establish that the CAN is superior to U-Net architectures in general. It is, however, strongly suggested that a hybrid design, pairing a global-context pathway with a full-resolution, non-upsampling decoder for fine continuity, would address both failure modes simultaneously.
 
 ## Results & Visualisations
 ### Learning Curves
