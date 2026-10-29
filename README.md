@@ -92,8 +92,6 @@ The project operates on a focused scale using the 2D OASIS brain dataset (/home/
 Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achieve a Sorensen-Dice similarity coefficient exceeding 0.90 while outperforming a standard U-Net baseline on local GPU hardware to ensure medical data privacy. Initial prototyping has successfully met this performance target, clearing the path to evaluate the model's multi-scale context aggregation against the baseline before expanding the architecture to a complex HipMRI dataset. Given the severe clinical safety risks of boundary hallucinations, a qualified human must always verify the outputs, while a fallback plan to an Improved 2D U-Net with residual skip connections is established if training instability or artifacts arise.
 
 
-
-
 ## Example Inputs, Outputs and Visualisations
 ### Input format
 |Artifact|Format|Shape/Range|Example path|
@@ -104,11 +102,32 @@ Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achie
 |Prediction| `torch.Tensor`| `[256,256]`, int64 in `{0,1,2,3}` via `argmax(dim=0)`|`visualisations/oasis_can_predictions.png`|
 
 ### Worked example
+Below is a (very) minimal code example somewhat resembling the 
 
+```
+from dataset import OASIS2DDataset
+from modules import ContextAggregationModule
+
+ds = OASIS2DDataset("OASIS/keras_png_slices_test",
+                    "OASIS/keras_png_slices_seg_test")
+
+img, msk = ds[0]
+print(img.shape, img.dtype, float(img.max()))   # torch.Size([1, 256, 256]) float32 1.0
+print(msk.shape, msk.unique().tolist())          # torch.Size([256, 256]) [0, 1, 2, 3]
+
+model = ContextAggregationModule(C=64).eval()
+pred  = model(img.unsqueeze(0)).argmax(dim=1).squeeze(0)   # [256, 256]
+```
+`predict.py` runs this loop over all 544 test slices and reports per-class Dice/IoU.
+
+### Outputs
+Quantitative. Per class Dice and IoU plus the tissue-mean Dice reported inthe 'Results' section. Note: `calculate_dice_score` averages over all four classes *including backgorund*, which inflates the mean of both models. The table in the results reports the tissue-mean (excludes background) because that is the metric the >0.90 gate refers to in the report task sheet.
 
 ## Investigation of the Open Research Dilemma
 ### The Spatial Context vs Clinical Boundary Utility Dilemma
-Standard global Sorensen-Dice similarity coefficiencts can hide major local boundary failures. In neuroimaging segmentatino, high global Dice scores often coexist with topologically invalid tissue disconnections along narrow cortical gyri or boundary erosion between Gray Matter and CSF. This investigation evaluates whether preserving full 256x256 spatial resolution via dilated context aggregation (CAN) genuinely eliminates boundary errors ocmpared to a pooling-based encoder-decoder (2D U-Net).
+Standard global Sorensen-Dice similarity coefficiencts can hide major local boundary failures. In neuroimaging segmentatino, high global Dice scores often coexist with topologically invalid tissue disconnections along narrow cortical gyri or boundary erosion between Gray Matter and CSF. Because background dominates the image, the model can score very well overall while still failing miserably to identify tissue. This investigation asks whether preserving full 256x256 spatial resolution via dilated context aggregation (CAN) genuinely eliminates boundary errors compared to a pooling-based encoder-decoder (2D U-Net).
+
+Caveat: The baseline (`Simple2DUNet`) has as single encoder leve, one max-pool, one bilinear upsample and one skip connection... it is a shallow U-Net, not the improved U-Net of isensee et al. Conclusions therefore apply to *this* baseline specifically: "the CAN beats a shallow 2D U-Net", not "the CAN beats U-Net in general" Further extension of this report could involve quantitative and qualitative testing of more advanced U-Net architectures. 
 
 ### Quantitative Benchmarking
 Evaluated on a test split completely isolated from training and validation steps, the following data was recorded during inferencing of the test split (544 slices) (see [predict.py](predict.py)).
@@ -117,7 +136,7 @@ Evaluated on a test split completely isolated from training and validation steps
 | Baseline U-Net    | 0.9760 | 0.6803 | 0.8289 | 0.9021 | 0.8038 | 0.6817 |
 | CAN (C = 64)      | 0.9914 | 0.8646 | 0.9152 | 0.9527 | 0.9108 | 0.8383 |
 
-Key Result: the 2D CAN surpasses the assessment threshold of >0.9 DICE score, with a DICE on tissue labels (excluding background) of 91.08%, yielding substantial gains in fine structures such as CSF, (+18.43%), and Gray Matter (+8.63%) relative to the baseline U-Net.
+**Key Result**: the 2D CAN surpasses the assessment threshold of >0.9 DICE score, with a DICE on tissue labels (excluding background) of 91.08%, yielding substantial gains in fine structures such as CSF, (+18.43%), and Gray Matter (+8.63%) relative to the baseline U-Net.
 
 ### Resource Profiling Table
 | Efficiency Metric                 | Baseline 2D U-Net | 2D CAN (C=64) | Trade-Off Impact  |
