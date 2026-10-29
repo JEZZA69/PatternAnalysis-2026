@@ -155,7 +155,7 @@ The CAN is simultaneously smaller, cheaper (in memory) and more accurate than th
 ### Qualitative error autopsy
 Through a close-up spatial analysis of the test set predictions against the ground truth, two distinct failure modes were identified, illustrated by three cases. The CAN's failure mode is omission of thin high-frequency boundary structures. The U-Net's failure mode is hallucination/over-segmentation, which manifests internally as interpolation artefacts and externally as boundary over-extension. 
 
-Case 1: Thin CSF strip at the brain/skull boundary (The U-Net wins)
+#### Case 1: Thin CSF strip at the brain/skull boundary (U-Net wins)
 ![autopsy-1](visualisations/autopsy-Page-1.drawio.png)
 At the outer boundary of the brain (the skull/scalp interface), the ground truth contains a thin (3-5px wide) strip of CSF (red). The CAN fails almost entirely to detect this strip and labels it as background. The U-Net partially detects it, though the strip contains a small discontinuity.
 
@@ -163,12 +163,13 @@ The U-Net's success over the CAN in this particular autopsy is attributable to i
 
 The CAN's failure is a direct consequence of the properties of dilated convolution. Dilated filters do not possess positional knowledge about pixels on semantically meaningful contours, which can lead to ambiguous predictions on object boundaries. Moreover, dilated convolution attenutates high-frequency responses due to sparse sampling. The total number of sampled pixels remains unchanged while the receptive field grows, so the fraction o fthe receptive field actually observed becomes small. A 3-5px strip of CSF provides exactly the kind of high-frequency boundary signal that dilation supresses. The CAN's large receptive field integrates over a sparse grid that samples background and tissue across the boundary, but wihtout explicit boundary cues it cannot resolve the thin strip at the interface. This is not a failure of resolution, the CAN operates at 256x256, but a failure of boundary sensitivity inherent to the dilated convolution operator.
 
+#### Case 2: Internal CSF continuity (CAN wins)
 ![autopsy-2](visualisations/autopsy-Page-2.drawio.png)
 Inside a large, homogeneous clump of CSF (red), the U-Net hallucinates a distinct, circular black dot (background) directly in the center. The CAN, however, accurately segments the region as a solid, continuous mask.
 
+The U-Net likely fails in this regard due to it's 128x128 bottleneck. Upsampling operations in encoder-decoder architectures are known to introduce checkerboard artifacts and interpolation errors when spatially adjacent high-resolution pixels are reconstructed from different low-resolution pixels. If the compressed feature map contains even a single anomalous pixel (due to the spatial compression), the bilinear upsampling process in the decoder magnifies that single pixel into a large, visible black hole. 
 
-
-This is likely an upsampling artifact specific to the U-Net architecture. The U-Net processes this regionin its 128x128 bottleneck. If the compressed feature map contains even a single anomalous pixel (due to the spatial compression), the bilinear upsampling process in the decoder magnifies that single pixel into a large, visible black hole. The CAN avoids this entirely because its feature maps never leave the native 256x256 resolution. It processes the large clump of tissue continuously through its dilated convolutional layers, meaning spatial continuity is preserved by design.
+The CAN avoids this entirely because its feature maps never leave the native 256x256 resolution (no downsampling/upsampling). It processes the large clump of tissue continuously through its dilated convolutional layers, meaning spatial continuity is preserved by design. Dilated convolution was explicitly adopted in part to eliminate the need for upscaling and the defects that accompany it. Spatial continuity in the CSF clump is preserved by design: the representation is never compressed to a resolution at which a single pixel could dominate a neighbourhood, and is never expanded through interpolation.
 
 
 ![autopsy-3](visualisations/autopsy-Page-3.drawio.png)
