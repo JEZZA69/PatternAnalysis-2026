@@ -9,12 +9,13 @@ from modules import *
 from dataset import get_oasis_dataloaders
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../.."))
+
+DATA_DIR = os.path.join(PROJECT_ROOT, "OASIS")
 MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
-LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "models/training_log.md")
-
+LOG_FILE_PATH = os.path.join(MODELS_DIR, "training_log.md")
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
 EPOCHS = 10 # Number of epochs to be run at once. Still saves the checkpoints and logs between epochs.

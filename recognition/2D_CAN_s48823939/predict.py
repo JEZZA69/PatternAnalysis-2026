@@ -10,10 +10,9 @@ import matplotlib.patches as mpatches
 from modules import ContextAggregationModule, Simple2DUNet
 from dataset import get_oasis_dataloaders
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "visualisations")
-MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
+from train import PROJECT_ROOT, DATA_DIR, MODELS_DIR
+
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "visualisations")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 MODEL_TYPE = "unet"      # 'can' or 'unet'
