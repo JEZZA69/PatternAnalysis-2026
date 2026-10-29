@@ -38,7 +38,7 @@ def load_weights(model, weights_filename, device='cpu'):
     
     weights_path = os.path.join(MODELS_DIR, weights_filename) # Inside models/ folder (matches train.py)    
 
-    if weights_path:
+    if os.path.exists(weights_path):
         state_dict = torch.load(weights_path, map_location=device)
         if 'model_state' in state_dict:
             model.load_state_dict(state_dict['model_state'])
@@ -162,8 +162,8 @@ def visualise_samples(model, loader, device, tag, num_samples=4):
         pr = preds[idx]
  
         axes[idx, 0].imshow(img, cmap="gray")
-        axes[idx, 0].set_title(f"Sample {idx + 1}: MRI")
- 
+        axes[idx, 0].set_title(f"Sample {idx + 1} (Slice Index: {idx})") 
+        
         axes[idx, 1].imshow(img, cmap="gray")
         axes[idx, 1].imshow(np.ma.masked_where(gt == 0, gt), cmap=cmap, alpha=0.6, vmin=0, vmax=3)
         axes[idx, 1].set_title("Ground truth")
