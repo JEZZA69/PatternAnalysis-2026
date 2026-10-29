@@ -171,7 +171,7 @@ The U-Net likely fails in this regard due to it's 128x128 bottleneck. Upsampling
 
 The CAN avoids this entirely because its feature maps never leave the native 256x256 resolution (no downsampling/upsampling). It processes the large clump of tissue continuously through its dilated convolutional layers, meaning spatial continuity is preserved by design. Dilated convolution was explicitly adopted in part to eliminate the need for upscaling and the defects that accompany it. Spatial continuity in the CSF clump is preserved by design: the representation is never compressed to a resolution at which a single pixel could dominate a neighbourhood, and is never expanded through interpolation.
 
-
+#### Case 3: Large boundary protrusion (CAN wins)
 ![autopsy-3](visualisations/autopsy-Page-3.drawio.png)
 The U-Net generates a large protrusion of tissue extending approximately 10–12 px beyond the ground-truth brain boundary. The CAN and ground truth match closely in this region. 
 
