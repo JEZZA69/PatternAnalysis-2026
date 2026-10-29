@@ -55,13 +55,16 @@ python predict.py   # Executes inference, generates quantitative metrics and vis
 Datasets and `.pth` weights are **not** committed to the repository, as required by the assessment. 
 
 ## Data Pipeline and Processing
-
 ### Dataset Structure & Split Justification
 The OASIS 2D brain dataset consists of paired single-channel PNG images and 4-class segmentation masks divided across pre-defined directories:
  - **Training Set**: 9,664 slices (~85%)
  - **Validation Set**: 1,120 slices (~10%)
  - **Test Set**: 544 slices (~5%)
-The dataset enforces strict patient-level separation. All slices originating from a specific patient volume reside exclusively within a single partition. There is no overlap of patient ID numbers between any of the directories, ensuring no risk of cross-slice patient memorisation and ensuring no overfitting or leakage.
+Since adjacent slices from the same patient differ by only millimetres, the dataset enforces strict patient-level separation. All slices originating from a specific patient volume reside exclusively within a single partition. There is no overlap of patient ID numbers between any of the directories, ensuring no risk of cross-slice patient memorisation and ensuring no overfitting or leakage due to similarities between adjacent slices of the same patient.
+
+Because no patient appears in more than one split, the test-set Dice of 0.9108 (tissue mean) is an estimate of performance on *unseen patients*, not unseen slices of seen patients. Which is the correct generalisation target for a clinical deployment claim.
+
+With 9,664 training slices, the model has ample data, so a large train fraciton is justified. 1,120 validation slices are more than sufficient to drive `ReduceLROnPlateau` (patience 3) and model selection without adding noise to the LR decision. 544 test slices is small in absolute terms but yields tight Dice confidence intervals. For a per-class Dice near 0.9, the binomial standard error is approximately `sqrt(0.9*0.1/544) ~= 0.013`, i.e. roughly -+ 1.3 pp at 1 SE. This is fine for comparing models whose gaps are 5-18pp (see the benchmarking table), though it is marginal for the ~1pp differences between similarly-performing variants, and any future comparison of close models should report confidence intervals or paired tests rather than point estimates alone. 
 
 ### Preprocessing
 1. **Image Normalisation:** Images are loaded as grayscale (`L`) and normalised to `[0, 1]` by dividing by 255.
