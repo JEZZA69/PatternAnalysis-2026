@@ -19,25 +19,24 @@ To build, evaluate, and benchmark a 2D Context Aggragation Network (CAN) that au
 ### Scope
 The project operates on a focused scale using the 2D OASIS brain dataset (/home/groups/comp3710/OASIS), which contains preprocessed structural brain MRI slices and corresponding ground-truth segmentation masks.
 ### Acceptance criteria
- - Dice score performance: The primary quantitative metric for evaluating the performance of the model is the Sorensen-Dice similarity coefficient (DSC). The dice coefficient measures the spatial overlap between two binary masks. A score of 1.0 represents a perfect match, while 0 indicates no overlap. A target score of >0.90 (90%) across all tissue labels is mandated by the task set by the course.
- - Baseline Performance: The model must outperform a standard U-Net model under the same dataset conditions in order to evaluate if "incorporating advanced multi-scale context can genuinely eliminate these hazardous boundary and slice-transition errors compared to a 2D baseline."
- - Operational constraints: The model must run comfortably on workstation hardware or local GPUs. Given that patients sensitive medical data must be kept on the hospital's private network.
+ - **Dice score performance:** The primary quantitative metric for evaluating the performance of the model is the Sorensen-Dice similarity coefficient (DSC). The dice coefficient measures the spatial overlap between two binary masks. A score of 1.0 represents a perfect match, while 0 indicates no overlap. A target score of >0.90 (90%) across all tissue labels is mandated by the task set by the course.
+ - **Baseline Performance:** The model must outperform a standard U-Net model under the same dataset conditions in order to evaluate if "incorporating advanced multi-scale context can genuinely eliminate these hazardous boundary and slice-transition errors compared to a 2D baseline."
+ - **Operational constraints:** The model must run comfortably on workstation hardware or local GPUs. Given that patients sensitive medical data must be kept on the hospital's private network.
 ### Model Choice & Course Concepts
  - **Model Architecture**: The chosen architecture is a 2D Context Aggregation Network (CAN) on the OASIS dataset (easy tier). Instead of downsampling or pooling, it gains wider, multi-scale contextual information by systematically expanding the receptive field. This enables more context to be captured by the network, enabling greater precision on the pixel level, making it ideal for identifying fine details.
  - **Dataset Configuration**: The preprocessed OASIS 2D brain dataset (located on rangpur) consists of pre-segmented groups of train, validate, and test datasets. This separation enforces strict air gap separation to prevent critical data leakage and over-fitting.
  - The Oasis Brain 2D dataset consists of 2D MRI brain slices of several patients.
 
-
 ### Preliminary Feasibility evidence
- - Empirical Validation: Initial exploratory prototyping has already been successfully executed, with a working 2D CAN model trained and evaluated to achieve a Dice score exceeding 90% (>0.90).
+ - **Empirical Validation**: Initial exploratory prototyping has already been successfully executed, with a working 2D CAN model trained and evaluated to achieve a Dice score exceeding 90% (>0.90).
  - Current Phase: Having verified that the architecture is viable and capable of meeting performance targets, the next immediate phase is implementing a standard 2D U-Net baseline. This will allow for a direct comparative analysis to answer the core course research dilemma: whether multi-scale context aggregation genuinely improves local boundary precision compared to a standard baseline.
  - After determining the performance of the 2D CAN model relative to the 2D U-Net baseline, the next step will be to develop another 2D CAN with a more complex dataset (HipMRI 2D slices.)
- - Compute Resources: Initial training and prototyping were executed successfully on a local high-end consumer gaming GPU (AMD Radeon 9070 xt) without requiring enterprise-grade hardware, proving the model's lightweight efficiency for the easy/normal tier.
+ - **Compute Resources:** Initial training and prototyping were executed successfully on a local high-end consumer gaming GPU (AMD Radeon 9070 xt) without requiring enterprise-grade hardware, proving the model's lightweight efficiency for the easy/normal tier.
 
 ### Risks, Budget & Fallback
- - Clinical Safety: Crucially, there must always be a qualified human in between the model and the patient. Given a Dice score of >90%, it is reasonable to expect the model to be accurate, but in medical imaging, deployment risks are severe. If a model hallucinates boundaries, creates disconnected tissue fragments, or misses a critical atrophy zone, it could lead to faulty diagnostic support or flawed volumetric tracking. Furthermore, over-fitting on training slices can cause catastrophic failure on unseen and unique, out-of-distribution patient scans.
- - Computing Budget: The initial pipeline and easy-tier models were trained locally on consumer hardware. However, scaling up to more complex configurations (such as deeper normal/hard variants or 3D volumes) will leverage the university's Rangpur HPC cluster using slurm.
- - Workaround / Fallback: If dilated convolution blocks introduce training instability, gridding artifacts, or fail to cleanly beat the baseline, the fallback plan is to pivot to an Improved 2D U-Net architecture utilizing standard residual skip connections to secure baseline compliance.
+ - **Clinical Safety**: Crucially, there must always be a qualified human in between the model and the patient. Given a Dice score of >90%, it is reasonable to expect the model to be accurate, but in medical imaging, deployment risks are severe. If a model hallucinates boundaries, creates disconnected tissue fragments, or misses a critical atrophy zone, it could lead to faulty diagnostic support or flawed volumetric tracking. Furthermore, over-fitting on training slices can cause catastrophic failure on unseen and unique, out-of-distribution patient scans.
+ - **Computing Budget**: The initial pipeline and easy-tier models were trained locally on consumer hardware. However, scaling up to more complex configurations (such as deeper normal/hard variants or 3D volumes) will leverage the university's Rangpur HPC cluster using slurm.
+ - **Workaround / Fallback**: If dilated convolution blocks introduce training instability, gridding artifacts, or fail to cleanly beat the baseline, the fallback plan is to pivot to an Improved 2D U-Net architecture utilizing standard residual skip connections to secure baseline compliance.
 
 ### In summary:
 Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achieve a Sorensen-Dice similarity coefficient exceeding 0.90 while outperforming a standard U-Net baseline on local GPU hardware to ensure medical data privacy. Initial prototyping has successfully met this performance target, clearing the path to evaluate the model's multi-scale context aggregation against the baseline before expanding the architecture to a complex HipMRI dataset. Given the severe clinical safety risks of boundary hallucinations, a qualified human must always verify the outputs, while a fallback plan to an Improved 2D U-Net with residual skip connections is established if training instability or artifacts arise.
@@ -101,8 +100,24 @@ Key Result: the 2D CAN surpasses the assessment threshold of >0.9 DICE score, wi
 | Inference Latency (per slice)     |11.05 ms           |11.54 ms       |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.                      |
 | Full Resolution Feature Maps      |Downsampled to 128x128| Retained at 25x256|Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explic pixel-level precision.                                                                                  |
 
+
+## Results & Visualisations
 ### Learning Curves
 ![model learning curves](visualisations/learning_curves.png)
+
+### Boundary-sensitive metrics
+Global Dice can mask boundary errors, which is the core of the assessment's dilemma.
+
+
+## Qualitative Error Autopsy & Spatial Difference Maps
+### CAN: Ground truth vs predictions
+![oasis CAN predictions](visualisations/oasis_can_predictions.png)
+While the performance of the CAN is not as bad as the U-Net, there are still issues with edge detection
+
+
+### UNET: Ground truch vs predictions
+![oasis UNET predictions](visualisations/oasis_unet_predictions.png)
+The limitations of the U-NET architecture can be seen at a glance, 
 
 
 TODO: find out where this slots in
@@ -130,27 +145,8 @@ A U-Net trades resolution for context through pooling. The CAN instead spends it
  
 Layers 2–7 are initialised with all weights zero except the centre tap of matching channel pairs, which is set to 1; all biases are zero. Each such layer then computes $\mathrm{ReLU}(x)$ for non-negative inputs, so the untrained network is approximately an identity map from layer 2 onward. The first layer (random) and the output layer (random) are the only places where the input is transformed at initialisation.
 
-## Results
-
-### Quantitative benchmark
 
 
-
-
-
-### Boundary-sensitive metrics
-Global Dice can mask boundary errors, which is the core of the assessment's dilemma.
-
-
-## Qualitative Error Autopsy & Spatial Difference Maps
-### CAN: Ground truth vs predictions
-![oasis CAN predictions](visualisations/oasis_can_predictions.png)
-While the performance of the CAN is not as bad as the U-Net, there are still issues with edge detection
-
-
-### UNET: Ground truch vs predictions
-![oasis UNET predictions](visualisations/oasis_unet_predictions.png)
-The limitations of the U-NET architecture can be seen at a glance, 
 
 ## Engineering & Managerial Recommendation
  - Trade-off synthesis, the pros and cons of using the 
