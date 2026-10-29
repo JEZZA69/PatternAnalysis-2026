@@ -16,7 +16,7 @@ OUTPUT_DIR = os.path.join(SCRIPT_DIR, "visualisations")
 MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-MODEL_TYPE = "can"      # 'can' or 'unet'
+MODEL_TYPE = "unet"      # 'can' or 'unet'
 BATCH_SIZE = 8
 NUM_CLASSES = 4
 CLASS_NAMES = ["Background", "CSF", "Grey Matter", "White Matter"]
