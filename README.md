@@ -78,12 +78,17 @@ Layers 2–7 are initialised with all weights zero except the centre tap of matc
 ## Results
 
 ### Quantitative benchmark
-Below 
+
+| Model | Background | CSF | Grey matter | White matter | Mean Dice (tissue labels) | Mean IoU |
+|---|---|---|---|---|---|---|
+| Baseline U-Net | 0.9760 | 0.6803 | 0.8289 | 0.9021 | 0.8468 | 0.7495 |
+| CAN (C = 64) | 0.9914 | 0.8646 | 0.9152 | 0.9527 | 0.9310 | 0.8744 |
+
 ### Learning Curves
 ![model learning curves](visualisations/model_performance_comparison.png)
 
-
-
+### Boundary-sensitive metrics
+Global Dice can mask boundary errors, which is the core of the assessment's dilemma.
 
 ## Quantitative Benchmarking
 
