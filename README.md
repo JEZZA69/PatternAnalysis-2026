@@ -131,20 +131,26 @@ Caveat: The baseline (`Simple2DUNet`) has as single encoder leve, one max-pool, 
 
 ### Quantitative Benchmarking
 Evaluated on a test split completely isolated from training and validation steps, the following data was recorded during inferencing of the test split (544 slices) (see [predict.py](predict.py)).
-| Model     | Background    | CSF   | Grey matter   | White matter  | Mean Dice (tissue labels)     | Mean IoU (Tissue Labels)  |
+| Model     | Background    | CSF   | Grey matter   | White matter  | Mean Dice (Tissue labels)     | Mean IoU (Tissue labels)  |
 |---                |---|---|---|---|---|---|
 | Baseline U-Net    | 0.9760 | 0.6803 | 0.8289 | 0.9021 | 0.8038 | 0.6817 |
 | CAN (C = 64)      | 0.9914 | 0.8646 | 0.9152 | 0.9527 | 0.9108 | 0.8383 |
 
-**Key Result**: the 2D CAN surpasses the assessment threshold of >0.9 DICE score, with a DICE on tissue labels (excluding background) of 91.08%, yielding substantial gains in fine structures such as CSF, (+18.43%), and Gray Matter (+8.63%) relative to the baseline U-Net.
+Key Result: the 2D CAN surpasses >90% threshold, tissue only DICE (excluding background) of 91.08%. Gains are concentrated in exactly the structures the dilemma predicts should be the hardest:
+ - CSF: +18.43 pp (0.6803 -> 0.8646)
+ - Grey matter: +8.63 pp (0.8289 → 0.9152)
+ - White matter: +5.06 pp (0.9021 → 0.9527)
+The CSF gain is the headline finding. CSF occupies thin, high-curvature regions, precisely what pooling destroys. The CAN resolves them at full resolution rather than reconstructing them from a 128x128 bottleneck.
 
-### Resource Profiling Table
-| Efficiency Metric                 | Baseline 2D U-Net | 2D CAN (C=64) | Trade-Off Impact  |
-|---                                |---                |---            |---                |
-|Total Parameters|406852|222468|Can requires 56.60% fewer parameters, greatly reducing model storage size|
-|Peak GPU VRAM (30 batch)           |2.1 GB             |1.0 GB         |CAN reduces VRAM consumption by 52.4%, as it avoids storing heavy multi-scale encoder skip-connection caches.            |
-| Inference Latency (per slice)     |11.05 ms           |11.54 ms       |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.                      |
-| Full Resolution Feature Maps      |Downsampled to 128x128| Retained at 25x256|Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explic pixel-level precision.                                                                                  |
+### Resource Profiling
+| Efficiency Metric                 | Baseline 2D U-Net     | 2D CAN (C=64)     | Trade-Off Impact  |
+|---                                |---                    |---                |---                |
+|Total Parameters|406852|222468|Can requires 45.3% fewer parameters, greatly reducing model storage size|
+|Peak GPU VRAM (30 batch)           |2.1 GB                 |1.0 GB             |CAN reduces VRAM consumption by 52.4%, as it avoids storing heavy multi-scale encoder skip-connection caches.      |
+| Inference Latency (per slice)     |11.05 ms               |11.54 ms           |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.              |
+| Full Resolution Feature Maps      |Downsampled to 128x128 |Retained at 25x256 |Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explic pixel-level precision.                                                                                  |
+
+The CAN is simultaneously smaller, cheaper (in memory) and more accurate than the U-Net (while being almost as fast!) 
 
 
 ## Results & Visualisations
