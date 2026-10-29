@@ -153,11 +153,18 @@ The CSF gain is the headline finding. CSF occupies thin, high-curvature regions,
 The CAN is simultaneously smaller, cheaper (in memory) and more accurate than the U-Net. It spends its compute on width at full resolution rather than depth through a bottleneck. The only cost is latency, and +0.49ms/slice is immaterial. Profiles were collected on DirectML; CUDA numbers on Rangpur will differ absolutely but the ordering should hold.
 
 ### Qualitative error autopsy
-Through a close-up spatial analysis of the test set predictions against the ground truth, two distinct failure modes were identified that perfectly illustrate the architectural divergence between the models. Notably, each model exhibits a specific weakness that the other successfully handles.
+Through a close-up spatial analysis of the test set predictions against the ground truth, two distinct failure modes were identified, illustrated by three cases. The CAN's failure mode is omission of thin high-frequency boundary structures. The U-Net's failure mode is hallucination/over-segmentation, which manifests internally as interpolation artefacts and externally as boundary over-extension. 
 
 Case 1: Brain/Skull Boundary (The U-Net wins)
 ![autopsy-1](visualisations/autopsy-Page-1.drawio.png)
 At the outer boundary of the brain (the skull/scalp interface), the ground truth contains a thin (3-5px wide) strip of CSF (red). The CAN fails almost entirely to detect this strip and labels it as background. The U-Net partially detects it, though the strip contains a small discontinuity.
+
+The U-Net's advantage cannot be attributed to a global shape prior: the U-Net's receptive field (~20px) is smaller than the CAN's (67px), and a 20px windwo cannot represent the shape of the whole brain. The more plausible explaination is the full-resolution skip connection, which carries fine edge detail directly to the decoder. The discontinuity is consistent with the deep path. At 128x128, a 3-5px strip is only 1.5-2.5px wide, and where it narrows to 1-2px it is at or below one pixel, so that path cannot represent it continuously.
+
+
+The likely explaination for the CAN's failure 
+
+The likely explaination for the U-Net's advantage is the U-Net's skip connections, which pass full-resolution encoder features directly to the decoder. These preserve 
 
 This is not dumb luck on the U-Net's part, it is the direct result of its global bottleneck. The U-Net's max-pooling layers force the network to compress the image, allowing it to learn a macroscopic "shape prior" (i.e., "the brain is a continuous oval surrounded by background"). When the U-Net sees this boundary, this global context tells it to look for a tissue edge, allowing it to partially overcome the low local contrast. The U-Net's failure (the discontinuity) occurs because its 128x128 bottleneck lacks the spatial resolution to render the strip continuously as it gets more narrow (1-2px).
 
@@ -167,6 +174,18 @@ Conversely, the CAN's failure here is the direct cost of its full-resolution dil
 Inside a large, homogeneous clump of CSF (red), the U-Net hallucinates a distinct, circular black dot (background) directly in the center. The CAN, however, accurately segments the region as a solid, continuous mask.
 
 This is likely an upsampling artifact specific to the U-Net architecture. The U-Net processes this regionin its 128x128 bottleneck. If the compressed feature map contains even a single anomalous pixel (due to the spatial compression), the bilinear upsampling process in the decoder magnifies that single pixel into a large, visible black hole. The CAN avoids this entirely because its feature maps never leave the native 256x256 resolution. It processes the large clump of tissue continuously through its dilated convolutional layers, meaning spatial continuity is preserved by design.
+
+
+![autopsy-3](visualisations/autopsy-Page-3.drawio.png)
+Describes a very large overflow/bulge of completely hallucinated brain tissue by the Unet, while the CAN and ground truth match closely, the UNET protrudes from the established boundary by about 10-12px beyond what the ground truth suggests.
+
+#### The Macro vs Micro Trade-off
+These two cases perfectly encapsulate the research dilemma.
+
+ - The U-Net is a *macroscopic generalist*. Its global context makes it arobust at the outer edges of the anatomy, but its low-resolution bottleneck makes it prone to interpolation artifacts and boundary breaks. 
+ - The CAN is a *microscopic specialist*. Its full-resolution, dilated design makes it flawless at internal continuity (killing the U-Net's black-dot artifact), but it lacks the macroscopic shape prior to accurately delineate the absolute outer boundary of the brain.
+
+This confirms that neither architecture is universally superior. For clinical deployment, these specific findings strongly suggest that a hybrid approach, using a U-Net for global context, and a CAN decoder for fine continuity 
 
 
 ## Results & Visualisations
