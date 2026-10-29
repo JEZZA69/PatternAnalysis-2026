@@ -173,7 +173,11 @@ The CAN avoids this entirely because its feature maps never leave the native 256
 
 
 ![autopsy-3](visualisations/autopsy-Page-3.drawio.png)
-Describes a very large overflow/bulge of completely hallucinated brain tissue by the Unet, while the CAN and ground truth match closely, the UNET protrudes from the established boundary by about 10-12px beyond what the ground truth suggests.
+The U-Net generates a large protrusion of tissue extending approximately 10–12 px beyond the ground-truth brain boundary. The CAN and ground truth match closely in this region. 
+
+This is a known failure mode of U-Net-style architectures. They tend to over-segment target regions and may not accurately localise boundaries. The phenomenon has been characterised as an “over-segmentation paradox,” in which models achieve high overlap-based scores while suffering from substantial boundary localisation errors. The U-Net’s global context allows it to form a macroscopic hypothesis about the extent of tissue, but that hypothesis can override local boundary evidence when the two disagree. In this case, the decoder committed to tissue beyond the true anatomical contours.
+
+The CAN lacks the global bottleneck that would support such an aggressive hallucination past the bounds of the training masks. Its predictions are constrained by the local evidence sampled at the full resolution. This is the same property that causes its failure in Case 1: without a global prior, it cannot infer a boundary that local texture does not support. Here, that conservatism works in its favour — it does not extend tissue where the local evidence does not justify it. The CAN is “nearsighted,” and in this instance the near-sighted model is closer to the truth.
 
 #### The Macro vs Micro Trade-off
 These two cases perfectly encapsulate the research dilemma.
