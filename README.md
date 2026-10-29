@@ -10,7 +10,7 @@ Training stability is handled by an identity initialisation trick, where layers 
 ![Architecture Visualisation](visualisations/architecture_visualisation.drawio.png)
 Figure 1: CAN architecture - 8 shape-preserving layers with increasing dilation factor, followed by a 1x1 logits projection.
 
-### Repo layout and usage
+### Repo layout and usage TODO: update this
 ```
 .
 ├── dataset.py     # OASIS loader, normalisation, mask decoding, split integrity check
@@ -21,7 +21,47 @@ Figure 1: CAN architecture - 8 shape-preserving layers with increasing dilation 
 └── README.md
 ```
 
-## Feasibility report:
+## Dependencies & Reproducibility
+```# Environment (Python 3.12)
+python --version        # 3.12.x
+pip install torch==2.4.1 torch-directml==0.2.5.dev240914 pillow==12.3.0 numpy==2.5.4 matplotlib==3.11.2
+
+# Ensure OASIS dataset is placed in root directory: ./OASIS/
+python dataset.py   # Verifies data loader and split integrity
+python modules.py   # Contains the nn.Module class files for both the CAN and U-Net implementations in this report. 
+python train.py     # Set MODEL_NAME = "can" or "unet" in script settings
+python predict.py   # Executes inference, generates quantitative metrics and visualization overlays
+     
+```
+Datasets and `.pth` weights are **not** committed to the repository, as required by the assessment. 
+
+## Data Pipeline and Processing
+
+### Dataset Structure & Split Justification
+The OASIS 2D brain dataset consists of paired single-channel PNG images and 4-class segmentation masks divided across pre-defined directories:
+ - **Training Set**: 9,664 slices (~85%)
+ - **Validation Set**: 1,120 slices (~10%)
+ - **Test Set**: 544 slices (~5%)
+The dataset enforces strict patient-level separation. All slices originating from a specific patient volume reside exclusively within a single partition. There is no overlap of patient ID numbers between any of the directories, ensuring no risk of cross-slice patient memorisation and ensuring no overfitting or leakage.
+
+### Preprocessing
+1. **Image Normalisation:** Images are loaded as grayscale (`L`) and normalised to `[0, 1]` by dividing by 255.
+2. **Mask Categorical Encoding:** Masks are integer-coded. The raw values are `{0, 85, 170, 255}`, and integer division by 85 maps them to class indices `{0, 1, 2, 3}`.
+3. **Tensor Formatting:** Images are shaped `[1, H, W]` and masks `[H, W]` to match `CrossEntropyLoss`.
+4. **No data augmentation is applied**. This is a known generalistion gap: While the model achieves a Dice score exceeding the required 0.90 on the provided split, the absence of augmentations (such as random rotations, scaling, or elastic deformations) elaves the network potentially vulnerable to overfitting or poor generalisation when exposed to MRI scans from different scanners with varying intensity profiles. Future work should introduce spatial and intensity augmentations to improve robustness.
+
+### Training configuration
+| Setting | Value |
+|---|---|
+| Batch size | 30 |
+| Optimiser | AdamW (lr = 5e-5, weight decay = 1e-4) |
+| Scheduler | ReduceLROnPlateau (mode = max on val Dice, factor 0.5, patience 3) |
+| Loss | Multi-class Cross-Entropy with label smoothing $\epsilon$ = 0.05 |
+| Gradient clipping | Global norm, max 1.0 |
+
+
+
+## Feasibility Review:
 ### Intended user
 The intended user of the model are doctors, specifically hospital staff such as neuroradiologists and neuro-imaging researchers requiring automated, high-precision tissue segmentation templates for structural MRI scans.
 ### Purpose
@@ -51,43 +91,20 @@ The project operates on a focused scale using the 2D OASIS brain dataset (/home/
 ### In summary:
 Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achieve a Sorensen-Dice similarity coefficient exceeding 0.90 while outperforming a standard U-Net baseline on local GPU hardware to ensure medical data privacy. Initial prototyping has successfully met this performance target, clearing the path to evaluate the model's multi-scale context aggregation against the baseline before expanding the architecture to a complex HipMRI dataset. Given the severe clinical safety risks of boundary hallucinations, a qualified human must always verify the outputs, while a fallback plan to an Improved 2D U-Net with residual skip connections is established if training instability or artifacts arise.
 
-## Data pipeline, processing & reproducibility
 
-### Dataset Structure & Split Justification
-The OASIS 2D brain dataset consists of paired single-channel PNG images and 4-class segmentation masks divided across pre-defined directories:
- - **Training Set**: 9,664 slices (~85%)
- - **Validation Set**: 1,120 slices (~10%)
- - **Test Set**: 544 slices (~5%)
-The dataset enforces strict patient-level separation. All slices originating from a specific patient volume reside exclusively within a single partition. There is no overlap of patient ID numbers between any of the directories, ensuring no risk of cross-slice patient memorisation and ensuring no overfitting or leakage.
 
-### Preprocessing Pipeline
-1. **Image Normalisation:** Images are loaded as grayscale (`L`) and normalised to `[0, 1]` by dividing by 255.
-2. **Mask Categorical Encoding:** Masks are integer-coded. The raw values are `{0, 85, 170, 255}`, and integer division by 85 maps them to class indices `{0, 1, 2, 3}`.
-3. **Tensor Formatting:** Images are shaped `[1, H, W]` and masks `[H, W]` to match `CrossEntropyLoss`.
-4. No data augmentation is currently applied. 
-Note: While the model achieves a Dice score exceeding the required 0.90 on the provided split, the absence of augmentations (such as random rotations, scaling, or elastic deformations) elaves the network potentially vulnerable to overfitting or poor generalisation when exposed to MRI scans from different scanners with varying intensity profiles. Future work should introduce spatial and intensity augmentations to improve robustness.
 
-### Training configuration
-| Setting | Value |
-|---|---|
-| Batch size | 30 |
-| Optimiser | AdamW (lr = 5e-5, weight decay = 1e-4) |
-| Scheduler | ReduceLROnPlateau (mode = max on val Dice, factor 0.5, patience 3) |
-| Loss | Multi-class Cross-Entropy with label smoothing $\epsilon$ = 0.05 |
-| Gradient clipping | Global norm, max 1.0 |
+## Example Inputs, Outputs and Visualisations
+### Input format
+|Artifact|Format|Shape/Range|Example path|
+|---|---|---|---|
+|MRI slice|8-bit PNG, mode `L`|`[1,256,256]`, float in `[0,1]`|`OASIS/keras_png_slices_train/case_[SUBJECT_ID]_slice_0.nii.png`|
+|Ground-truth mask|8-bit PNG|`[256, 256]`, int64 in `{0,1,2,3}` after  $\div$`85`|`OASIS/keras_png_slices_train/masks/seg_[SUBJECT_ID]_slice_[SLICE].nii.png` |
+|Model logits| `torch.Tensor` | `[4, 256, 256]`| in-memory |
+|Prediction| `torch.Tensor`| `[256,256]`, int64 in `{0,1,2,3}` via `argmax(dim=0)`|`visualisations/oasis_can_predictions.png`|
 
-### Dependencies & Reproducibility Setup
-```# Environment (Python 3.12)
-python --version        # 3.12.x
-pip install torch==2.4.1 torch-directml==0.2.5.dev240914 pillow==12.3.0 numpy==2.5.4 matplotlib==3.11.2
+### Worked example
 
-# Repository Execution Instructions
-# Ensure OASIS dataset is placed in root directory: ./OASIS/
-python dataset.py   # Verifies data loader and split integrity
-python train.py     # Set MODEL_NAME = "can" or "unet" in script settings
-python predict.py   # Executes inference, generates quantitative metrics and visualization overlays      
-```
-Datasets and `.pth` weights are **not** committed to the repository, as required by the assessment. 
 
 ## Investigation of the Open Research Dilemma
 ### The Spatial Context vs Clinical Boundary Utility Dilemma
