@@ -157,7 +157,7 @@ Through a close-up spatial analysis of the test set predictions against the grou
 
 Case 1: Brain/Skull Boundary (The U-Net wins)
 ![autopsy-1](visualisations/autopsy-Page-1.drawio.png)
-At the extreme outer obundary of the brain (the skull/scalp interface), the gorund truth contains a thin (3-5px wide) strip of CSF (red). The CAN model fails almost entirely to detect this strip, hallucinating it as background. The U-Net, however, partially detects the strip, though it still contains a small discontinuity.
+At the outer boundary of the brain (the skull/scalp interface), the ground truth contains a thin (3-5px wide) strip of CSF (red). The CAN fails almost entirely to detect this strip and labels it as background. The U-Net partially detects it, though the strip contains a small discontinuity.
 
 This is not dumb luck on the U-Net's part, it is the direct result of its global bottleneck. The U-Net's max-pooling layers force the network to compress the image, allowing it to learn a macroscopic "shape prior" (i.e., "the brain is a continuous oval surrounded by background"). When the U-Net sees this boundary, this global context tells it to look for a tissue edge, allowing it to partially overcome the low local contrast. The U-Net's failure (the discontinuity) occurs because its 128x128 bottleneck lacks the spatial resolution to render the strip continuously as it gets more narrow (1-2px).
 
