@@ -68,6 +68,14 @@ For each 3×3 layer, padding equals dilation, so the spatial size stays at 256×
 ### Baseline 2D U-Net (`Simple2DUNet`, C = 64)
 The baseline has one encoder level, one max-pool, one bilinear upsample and a skip connection, with 406,852 parameters. This is a *shallow* U-Net, not the Improved U-Net of Isensee et al. The assessment's Easy-difficulty baseline is stated in terms of a standard model, so this is a valid comparison, but the conclusions apply to this shallow baseline specifically and should be stated that way in the results.
 
+### Why the CAN uses full resolution
+ 
+A U-Net trades resolution for context through pooling. The CAN instead spends its compute on full-resolution feature maps. This favours thin structures and boundary precision, at a cost in activation memory, as Section 3.4 showed.
+
+
+
+
+
 ## Quantitative Benchmarking
 
 ## Qualitative Error Autopsy & Spatial Difference Maps
