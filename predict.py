@@ -144,6 +144,7 @@ def print_and_save_report(metrics, tag):
     print(f"{'Mean (all 4)':<15}{fmt(metrics['mean_dice_all']):>10}{fmt(metrics['mean_iou_all']):>10}")
     print(f"{'Mean (tissue)':<15}{fmt(metrics['mean_dice_tissue']):>10}{fmt(metrics['mean_iou_tissue']):>10}")
     print(f"\nPer-slice tissue Dice: {metrics['slice_dice_mean']:.4f} +/- {metrics['slice_dice_std']:.4f}")
+    print(f"Total parameter count: {determine_parameters(model=model)}")
 
 def visualise_samples(model, loader, device, tag, num_samples=4):
     images, targets = next(iter(loader))
@@ -184,6 +185,9 @@ def visualise_samples(model, loader, device, tag, num_samples=4):
     plt.close()
     print(f"--> Sample figure saved to: {save_path}")
 
+def determine_parameters(model):
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return total_params
 
 if __name__ == "__main__":
     # Imported here so the module can be imported without DirectML installed
