@@ -152,6 +152,22 @@ The CSF gain is the headline finding. CSF occupies thin, high-curvature regions,
 
 The CAN is simultaneously smaller, cheaper (in memory) and more accurate than the U-Net. It spends its compute on width at full resolution rather than depth through a bottleneck. The only cost is latency, and +0.49ms/slice is immaterial. Profiles were collected on DirectML; CUDA numbers on Rangpur will differ absolutely but the ordering should hold.
 
+### Qualitative error autopsy
+Through a close-up spatial analysis of the test set predictions against the ground truth, two distinct failure modes were identified that perfectly illustrate the architectural divergence between the models. Notably, each model exhibits a specific weakness that the other successfully handles.
+
+Case 1: Brain/Skull Boundary (The U-Net wins)
+![autopsy-1](visualisations/autopsy-Page-1.drawio.png)
+At the extreme outer obundary of the brain (the skull/scalp interface), the gorund truth contains a thin (3-5px wide) strip of CSF (red). The CAN model fails almost entirely to detect this strip, hallucinating it as background. The U-Net, however, partially detects the strip, though it still contains a small discontinuity.
+
+This is not dumb luck on the U-Net's part, it is the direct result of its global bottleneck. The U-Net's max-pooling layers force the network to compress the image, allowing it to learn a macroscopic "shape prior" (i.e., "the brain is a continuous oval surrounded by background"). When the U-Net sees this boundary, this global context tells it to look for a tissue edge, allowing it to partially overcome the low local contrast. The U-Net's failure (the discontinuity) occurs because its 128x128 bottleneck lacks the spatial resolution to render the strip continuously as it gets more narrow (1-2px).
+
+Conversely, the CAN's failure here is the direct cost of its full-resolution dilated architecture. Because the CAN lacks a global pooling bottleneck, it is essentially "nearsighted". It relies strictly on local texture. At the edge of the brain, the dilated filters sample form the empty background and the adjacent tissue, but without the global shape prior, it simply cannot infer that a boundary exists. So it drops the thin strip entirely.
+
+The second
+![autopsy-2](visualisations/autopsy-Page-2.drawio.png)
+Inside a large, homogeneous clump of CSF (red), the U-Net hallucinates a distinct, circular black dot (background) directly in the center. The CAN, however, accurately segments the region as a solid, continuous mask.
+
+
 ## Results & Visualisations
 ### Learning Curves
 ![model learning curves](visualisations/learning_curves.png)
