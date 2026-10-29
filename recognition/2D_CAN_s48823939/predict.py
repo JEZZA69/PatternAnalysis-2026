@@ -224,7 +224,7 @@ if __name__ == "__main__":
     device = get_device()
     print(f"Using inference device: {device}")
  
-    # Test loader has no shuffle, so this file is determinstic, picks the same samples for visuals
+    # Test loader has no shuffle, so this file is deterministic, picks the same samples for visuals
     _, _, test_loader, _ = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
  
     model, weights_file, tag = build_model(MODEL_TYPE, device)
