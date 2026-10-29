@@ -37,7 +37,7 @@ class ContextAggregationModule(nn.Module):
             The brain slice passes through smoothly with all 7 layers completely unaltered.
             The network makes a guess
             The loss function adjusts
-            backpropagation kicks in
+            Backpropagation kicks in
             
         Because the signal wasn't randomly scrambled nonsense the signal can travel back through the network flawlessly.
         This allows the network to actually TRAIN
