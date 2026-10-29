@@ -34,7 +34,7 @@ def build_model(model_type, device):
     model = ContextAggregationModule(in_channels=1, num_classes=NUM_CLASSES, C=64)
     return model.to(device), "best_can_model.pth", "can"
 
-def load_model_weights(model, weights_filename, device='cpu'):
+def load_weights(model, weights_filename, device='cpu'):
     """Safely loads model weights, checking both script directory and project root."""
     
     weights_path = os.path.join(MODELS_DIR, weights_filename) # Inside models/ folder (matches train.py)    
@@ -50,11 +50,9 @@ def load_model_weights(model, weights_filename, device='cpu'):
         print(f"WARNING: Weights file '{weights_filename}' not found. Running with uninitialized weights.")
     return model
 
-
 def safe_ratio(num, den):
     """Return num/den, or NaN when the denominator is zero (class absent everywhere)."""
     return float(num) / float(den) if den > 0 else float("nan")
-
 
 def evaluate(model, loader, device):
     """
@@ -147,98 +145,59 @@ def print_and_save_report(metrics, tag):
     print(f"{'Mean (tissue)':<15}{fmt(metrics['mean_dice_tissue']):>10}{fmt(metrics['mean_iou_tissue']):>10}")
     print(f"\nPer-slice tissue Dice: {metrics['slice_dice_mean']:.4f} +/- {metrics['slice_dice_std']:.4f}")
 
-def create_overlay_cmap():
-    """Returns a ListedColormap for discrete class segmentation masks."""
-    return ListedColormap(CLASS_COLORS)
-
-def visualise_samples(model=None, dataloader=None, device='cpu', num_samples=4, save_filename='oasis_predictions.png'):
-    """
-    Extracts samples from the dataloader and generates side-by-side plots of:
-    1. Raw Grayscale Input MRI
-    2. Ground Truth Segmentation Mask
-    3. Model Predicted Segmentation Mask
-    """
-    images, targets = next(iter(dataloader))
+def visualise_samples(model, loader, device, tag, num_samples=4):
+    images, targets = next(iter(loader))
     num_samples = min(num_samples, images.size(0))
-
-    if model is not None:
-        model.eval()
-        with torch.no_grad():
-            outputs = model(images[:num_samples].to(device))
-            preds = torch.argmax(outputs, dim=1).cpu().numpy()
-        ncols = 3
-    else:
-        preds = None
-        ncols = 2
-
-    fig, axes = plt.subplots(num_samples, ncols, figsize=(4 * ncols, 4 * num_samples))
-    if num_samples == 1:
-        axes = np.expand_dims(axes, axis=0)
-
-    cmap = create_overlay_cmap()
-
+ 
+    with torch.no_grad():
+        preds = torch.argmax(model(images[:num_samples].to(device)), dim=1).cpu().numpy()
+ 
+    cmap = ListedColormap(CLASS_COLORS)
+    fig, axes = plt.subplots(num_samples, 3, figsize=(12, 4 * num_samples))
+    axes = np.atleast_2d(axes)
+ 
     for idx in range(num_samples):
         img = images[idx, 0].numpy()
         gt = targets[idx].numpy()
-
-        # 1. Input MRI Slice
-        axes[idx, 0].imshow(img, cmap='gray')
-        axes[idx, 0].set_title(f"Sample {idx + 1}: Raw MRI")
-        axes[idx, 0].axis('off')
-
-        # 2. Ground Truth Overlay (Mask out background class 0 for transparency)
-        axes[idx, 1].imshow(img, cmap='gray')
-        gt_masked = np.ma.masked_where(gt == 0, gt)
-        axes[idx, 1].imshow(gt_masked, cmap=cmap, alpha=0.6, vmin=0, vmax=3)
-        axes[idx, 1].set_title(f"Sample {idx + 1}: Ground Truth")
-        axes[idx, 1].axis('off')
-
-        # 3. Model Prediction Overlay (Mask out background class 0 for transparency)
-        if model is not None and preds is not None:
-            pred = preds[idx]
-            axes[idx, 2].imshow(img, cmap='gray')
-            pred_masked = np.ma.masked_where(pred == 0, pred)
-            axes[idx, 2].imshow(pred_masked, cmap=cmap, alpha=0.6, vmin=0, vmax=3)
-            axes[idx, 2].set_title(f"Sample {idx + 1}: Prediction")
-            axes[idx, 2].axis('off')
-
-    # Add shared color legend at the bottom
-    patches = [mpatches.Patch(color=CLASS_COLORS[i], label=CLASS_NAMES[i]) for i in range(1, len(CLASS_COLORS))]
-    fig.legend(handles=patches, loc='lower center', ncol=len(patches), bbox_to_anchor=(0.5, -0.02), frameon=True)
-
-    plt.tight_layout()
-    save_path = os.path.join(OUTPUT_DIR, save_filename)
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        pr = preds[idx]
+ 
+        axes[idx, 0].imshow(img, cmap="gray")
+        axes[idx, 0].set_title(f"Sample {idx + 1}: MRI")
+ 
+        axes[idx, 1].imshow(img, cmap="gray")
+        axes[idx, 1].imshow(np.ma.masked_where(gt == 0, gt), cmap=cmap, alpha=0.6, vmin=0, vmax=3)
+        axes[idx, 1].set_title("Ground truth")
+ 
+        axes[idx, 2].imshow(img, cmap="gray")
+        axes[idx, 2].imshow(np.ma.masked_where(pr == 0, pr), cmap=cmap, alpha=0.6, vmin=0, vmax=3)
+        axes[idx, 2].set_title("Prediction")
+ 
+        for ax in axes[idx]:
+            ax.axis("off")
+ 
+    patches = [mpatches.Patch(color=CLASS_COLORS[i], label=CLASS_NAMES[i]) for i in range(1, NUM_CLASSES)]
+    fig.legend(handles=patches, loc="lower center", ncol=3, frameon=True)
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+ 
+    save_path = os.path.join(OUTPUT_DIR, f"oasis_{tag}_predictions.png")
+    plt.savefig(save_path, dpi=200, bbox_inches="tight")
     plt.close()
-    print(f"--> Saved visual output to: {save_path}")
-
+    print(f"--> Sample figure saved to: {save_path}")
 
 
 if __name__ == "__main__":
+    # Imported here so the module can be imported without DirectML installed
     from train import get_device
+ 
     device = get_device()
     print(f"Using inference device: {device}")
-
-    # Load test/validation dataloader
-    _, _, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=8)
-    
-    if MODEL_TYPE.lower() == "unet":
-        model = Simple2DUNet(in_channels=1, num_classes=num_classes, C=64).to(device)
-        weights_file = "best_unet_model.pth"
-        output_image_name = "oasis_unet_predictions.png"
-    else:
-        model = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device)
-        weights_file = "best_can_model.pth"
-        output_image_name = "oasis_can_predictions.png"
-
-    # Load weights robustly
-    model = load_model_weights(model, weights_file, device=device)
-
-    # Run inference and save multi-panel visualisations
-    visualise_samples(
-        model=model,
-        dataloader=test_loader,
-        device=device,
-        num_samples=4,
-        save_filename=output_image_name
-    )
+ 
+    _, _, test_loader, _ = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
+ 
+    model, weights_file, tag = build_model(MODEL_TYPE, device)
+    model = load_weights(model, weights_file, device)
+ 
+    metrics = evaluate(model, test_loader, device)
+    sanity_check_iou_dice(metrics["dice"], metrics["iou"])
+    print_and_save_report(metrics, tag)
+    visualise_samples(model, test_loader, device, tag)
