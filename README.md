@@ -11,7 +11,7 @@ Standard convolutional networks downsample feature maps, which can wash out fine
 The CAN architecture features 8 layers structured as a dense prediction pipeline that preserves full 256x256 spatial resolution by matching padding to dilation factors for all 3x3 kernels. Layers 1 through 6 systematically aggregate multi-scale context by exponentially increasing dilation factors (1,1,2,4,8,16), followed by a 3x3 refinement layer (dilation 1), and a final 1x1 convolution layer that projects the intermediate channels (of size C=64) down to the 4 target segmentation classes. To overcome training instability and prevent initial boundary hallucinations, the module implements an identity initialization trick. By setting all weights to zero except for the exact center pixel ([1,1]) of matching channels—which is set to one—the network creates a clean signal pass-through during the first epoch. This prevents random noise scrambling, ensuring smooth gradient flow during backpropagation so the network can reliably train.
 
 ## Feasibility Report
-The full feasability review can be found here: ![feasibility-review.md](feasibility-review.md)
+The full feasability review can be found here: [feasibility-review.md](feasibility-review.md)
 ### In summary:
 Utilising the preprocessed 2D OASIS dataset, the lightweight model aims to achieve a Sorensen-Dice similarity coefficient exceeding 0.90 while outperforming a standard U-Net baseline on local GPU hardware to ensure medical data privacy. Initial prototyping has successfully met this performance target, clearing the path to evaluate the model's multi-scale context aggregation against the baseline before expanding the architecture to a complex HipMRI dataset. Given the severe clinical safety risks of boundary hallucinations, a qualified human must always verify the outputs, while a fallback plan to an Improved 2D U-Net with residual skip connections is established if training instability or artifacts arise.
 
@@ -85,26 +85,34 @@ Layers 2–7 are initialised with all weights zero except the centre tap of matc
 | CAN (C = 64) | 0.9914 | 0.8646 | 0.9152 | 0.9527 | 0.9310 | 0.8744 |
 
 ### Learning Curves
-![model learning curves](visualisations/model_performance_comparison.png)
+![model learning curves](visualisations/learning_curves.png)
 
 ### Boundary-sensitive metrics
 Global Dice can mask boundary errors, which is the core of the assessment's dilemma.
 
-## Quantitative Benchmarking
 
 ## Qualitative Error Autopsy & Spatial Difference Maps
+### CAN: Ground truth vs predictions
+![oasis CAN predictions](visualisations/oasis_can_predictions.png)
+While the performance of the CAN is not as bad as the U-Net, there are still issues with edge detection
+
+
+### UNET: Ground truch vs predictions
+![oasis UNET predictions](visualisations/oasis_unet_predictions.png)
+The limitations of the U-NET architecture can be seen at a glance, 
+
 ## Engineering & Managerial Recommendation
  - Trade-off synthesis, the pros and cons of using the 
  - Summary of safety concernts
 
 ## Artificial Intelligence Usage Disclosure
-Artificial intelligence was utilised extensively in the production of this project. Artificial intelligence models, particularly the free version of gemini present in google search, was extensively used for:
+Artificial intelligence was utilised in the production of this project. Artificial intelligence models, particularly the free version of gemini present in google search, was particularly useful for:
  - Ideation and consolodation
  - Boilerplate code generation
  - Debugging
  - Code cleaning and refactoring 
  - Matplotlib visualisation graph generation
-Frequently, Gemini was used as a consult for the broader scope of the project, and was incremental in providing direction and enlightenment for the codebase.
+Frequently, Gemini was used as a consult for the broader scope of the project, and was incremental in providing direction and enlightenment for the codebase, so while it was helpful in generating boilerplate, the insight and information gleamed from short chat sessions was essential during broad codebase formulation.
 
 ## Literature and Further Reading
  - F. Yu and V. Koltun, “Multi-scale context aggregation by dilated convolutions,” in Proc. ICLR,
