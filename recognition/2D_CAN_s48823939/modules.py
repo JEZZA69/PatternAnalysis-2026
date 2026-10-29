@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 
 class ContextAggregationModule(nn.Module):
+    """The CAN. Layers 1-6 apply 3x3 convolutions with exponentially increasing 
+    dilation factors (1,1,4,8,16), layer 7 is a 3x3 refinement (dilation 1) and 
+    layer 8 is 1x1 projection from `C = 64` intermediate channels to the 4 target classes. 
+    """
     def __init__(self, in_channels=1, num_classes=4, C=64):
         super().__init__()
         
