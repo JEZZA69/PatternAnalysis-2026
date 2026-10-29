@@ -1,4 +1,4 @@
-# CAN Training and Validation Log
+# Training and Validation Log
 
 | Epoch | Model | Train Loss | Train Dice | Val Loss | Val Dice |
 |:---:|:---:|:---:|:---:|:---:|:---:|
