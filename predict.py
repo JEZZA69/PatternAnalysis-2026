@@ -16,12 +16,27 @@ OUTPUT_DIR = os.path.join(SCRIPT_DIR, "visualisations")
 MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+MODEL_TYPE = "can"      # 'can' or 'unet'
+BATCH_SIZE = 8
+NUM_CLASSES = 4
+CLASS_NAMES = ["Background", "CSF", "Grey Matter", "White Matter"]
+TISSUE_CLASSES = [1, 2, 3]  # exclude background for the tissue-only means
+
+
 # Custom color palette for OASIS 4-class segmentation
 # Class 0: Background (Transparent), Class 1: CSF, Class 2: Gray Matter, Class 3: White Matter
 CLASS_COLORS = ['none', '#e6194b', '#3cb44b', '#4363d8']
 CLASS_NAMES = ['Background', 'CSF', 'Gray Matter', 'White Matter']
 
-MODEL_TYPE = "can" # 'can' or 'unet'
+
+def build_model(model_type, device):
+    """Return (model, weights_filename, tag) for the chosen model type."""
+    if model_type.lower() == "unet":
+        model = Simple2DUNet(in_channels=1, num_classes=NUM_CLASSES, C=64)
+        return model.to(device), "best_unet_model.pth", "unet"
+    model = ContextAggregationModule(in_channels=1, num_classes=NUM_CLASSES, C=64)
+    return model.to(device), "best_can_model.pth", "can"
+ 
 
 def create_overlay_cmap():
     """Returns a ListedColormap for discrete class segmentation masks."""
