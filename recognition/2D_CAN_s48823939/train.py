@@ -127,7 +127,7 @@ def evaluate_test_set(model, test_loader, criterion, device, num_classes=4):
     test_loss, test_dice = validate_one_epoch(model, test_loader, criterion, device, num_classes) 
     print(f"Final Test Loss: {test_loss:.4f} | Final Test Dice: {test_dice:.4f}")
       
-def save_checkpoint(epoch, model, optimizer, scheduler, path=CHECKPOINT_PATH, best_dice_val=0.0):
+def save_checkpoint(epoch, model, optimizer, scheduler, path, best_dice_val=0.0):
     """Saves a complete snapshot of the model to be resumed later. Prevents the need for long compute sessions, enabling incremental improvement of the model."""
     checkpoint = {
         'epoch': epoch,
@@ -237,7 +237,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
     
     # Load the checkpoint for iterative improvement
-    start_epoch, best_dice_val = load_checkpoint(CHECKPOINT_PATH, model, optimizer=optimizer, scheduler=scheduler, device=device)
+    start_epoch, best_dice_val = load_checkpoint(checkpoint_path, model, optimizer=optimizer, scheduler=scheduler, device=device)
     end_epoch = start_epoch + args.epochs
     print(f"Starting Training Loop from Epoch {start_epoch + 1}")
                 
@@ -261,7 +261,7 @@ def main():
             torch.save(model.state_dict(), SAVE_PATH)
             print(f"--> Saved new best model checkpoint to {SAVE_PATH} (Dice: {best_dice_val:.4f})")
             
-        save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=CHECKPOINT_PATH, best_dice_val=best_dice_val)
+        save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=checkpoint_path, best_dice_val=best_dice_val)
 
     print("Training complete!")
     
