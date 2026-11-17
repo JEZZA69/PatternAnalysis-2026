@@ -14,9 +14,10 @@ class OASIS2DDataset(Dataset):
         self.mask_paths = sorted(glob.glob(os.path.join(masks_dir, "*.png")))
         
         # Safety check to ensure images match masks 1:1
-        assert len(self.image_paths) == len(self.mask_paths), \
-            f"Mismatch! Found {len(self.image_paths)} images in {os.path.basename(images_dir)} " \
-            f"but {len(self.mask_paths)} masks in {os.path.basename(masks_dir)}."
+        assert len(self.image_paths) == len(self.mask_paths), (
+            f"Mismatch: {len(self.image_paths)} images vs "
+            f"{len(self.mask_paths)} masks in {images_dir}"
+        )
             
     def __len__(self):
         return len(self.image_paths)
