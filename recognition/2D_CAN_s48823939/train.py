@@ -179,8 +179,70 @@ def log_to_markdown_table(epoch, model_name, train_loss, train_dice, val_loss, v
         f.write(f"| {epoch + 1} | {model_name} | {train_loss:.4f} | {train_dice:.4f} | {val_loss:.4f} | {val_dice:.4f} |\n")    
     
     
-def plot_training_metrics():
-    """TODO"""
+def plot_training_metrics(model_name, log_path=LOG_FILE_PATH):
+    """
+    Parse the Markdown training log and write loss + Dice curves for a single
+    model to visualisations/training_metrics_{model_name}.png
+    """
+    if not os.path.exists(log_path):
+        print(f"WARN: {log_path} not found; skipping training-metrics plot.")
+        return
+    
+    epochs, train_loss, train_dice, val_loss, val_dice = [], [], [], [], []
+    
+    with open(log_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            # Skip blanks, the "|:---:|" divider, and the header row.
+            if not line.startswith("|") or line.startswith("|:") or "Epoch" in line:
+                continue
+            
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            
+            if len(cells) != 6:
+                continue
+            try:
+                epoch      = int(cells[0])
+                row_model  = cells[1]
+                train_loss, train_dice     = float(cells[2]), float(cells[3])
+                val_loss, val_dice     = float(cells[4]), float(cells[5])
+            except ValueError:
+                continue
+            if row_model.lower() != model_name.lower():
+                continue
+            epochs.append(epoch)
+            train_loss.append(train_loss); train_dice.append(train_dice)
+            val_loss.append(val_loss);   val_dice.append(val_dice)
+
+    if not epochs:
+        print(f"WARN: No log rows found for model '{model_name}'; skipping plot.")
+        return
+
+    fig, (ax_loss, ax_dice) = plt.subplots(1, 2, figsize=(12, 4))
+
+    ax_loss.plot(epochs, train_loss, marker="o", label="Train")
+    ax_loss.plot(epochs, val_loss,   marker="s", label="Validation")
+    ax_loss.set_xlabel("Epoch")
+    ax_loss.set_ylabel("Loss")
+    ax_loss.set_title(f"{model_name.upper()} — Loss")
+    ax_loss.legend()
+    ax_loss.grid(alpha=0.3)
+
+    ax_dice.plot(epochs, train_dice, marker="o", label="Train")
+    ax_dice.plot(epochs, val_dice,   marker="s", label="Validation")
+    ax_dice.axhline(0.90, color="red", linestyle="--", alpha=0.6, label="Target 0.90")
+    ax_dice.set_xlabel("Epoch")
+    ax_dice.set_ylabel("Dice")
+    ax_dice.set_title(f"{model_name.upper()} — Dice")
+    ax_dice.legend()
+    ax_dice.grid(alpha=0.3)
+
+    plt.tight_layout()
+    out_path = os.path.join(VIS_DIR, f"training_metrics_{model_name}.png")
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"--> Training metrics plot saved to: {out_path}")
+    
     
 def get_device():
     """Fetches the optimal device to run the computation on, checks for rangpur CUDA gpu, if not, decides between my local AMD gpu and the cpu"""
