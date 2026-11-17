@@ -4,6 +4,7 @@ import numpy as np
 import os
 import argparse
 import random
+import matplotlib.pyplot as plt
 
 try:
     import torch_directml
