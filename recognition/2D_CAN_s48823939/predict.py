@@ -127,6 +127,11 @@ def sanity_check_iou_dice(dice, iou, tol=1e-6):
 def fmt(x):
     return "n/a" if np.isnan(x) else f"{x:.4f}"
  
+def determine_parameters(model):
+    """Returns the total parameters of the loaded model."""
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return total_params
+ 
 def print_and_save_report(model, metrics, tag):
     d, u = metrics["dice"], metrics["iou"]
  
@@ -180,12 +185,6 @@ def visualise_samples(model, loader, device, tag, num_samples=4):
     plt.savefig(save_path, dpi=200, bbox_inches="tight")
     plt.close()
     print(f"--> Sample figure saved to: {save_path}")
-
-def determine_parameters(model):
-    """Returns the total parameters of the loaded model."""
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    return total_params
-    
 
 def measure_inference_latency(model, sample_input, device, num_warmup=10, num_repeats=50):
     """Measures average inference latency per slice in milliseconds (ms)."""
