@@ -193,14 +193,18 @@ def get_device():
     if torch.cuda.is_available():
         device = torch.device("cuda")
         print(f"INFO: Rangpur CUDA GPU active: {device}")
-    else:
+        
+    elif HAS_DIRECTML:
         try:
             # index 1 is my graphics card and 0 is my integrated graphics.
-            device = torch_directml.device(1) # Finally... a hardware acceleration fix that isn't rocm?
+            device = torch_directml.device(1)
             print(f"INFO: Home AMD GPU Active via DirectML: {device}")
-        except (ImportError, RuntimeError):
+        except Exception as e:
             device = torch.device("cpu")
-            print(f"WARN: Falling back to CPU: {device}")
+            print(f"WARN: DirectML failed ({e}), falling back to CPU.")  
+    else:
+        device = torch.device("cpu")
+        print(f"WARN: Falling back to CPU: {device}")
             
     return device
 
