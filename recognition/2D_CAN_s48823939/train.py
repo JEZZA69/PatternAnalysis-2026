@@ -107,7 +107,7 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             outputs = model(images)
             loss = criterion(outputs, targets)
             
-            running_loss += loss.item() * images.size(0)
+            running_loss += loss.item() * batch_size
             running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * batch_size
             total_samples += batch_size
             
