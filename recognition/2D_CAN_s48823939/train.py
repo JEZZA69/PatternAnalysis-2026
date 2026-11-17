@@ -15,7 +15,6 @@ from dataset import get_oasis_dataloaders
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../.."))
-
 DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
 MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
 VIS_DIR = os.path.join(SCRIPT_DIR, "visualisations")
@@ -26,8 +25,9 @@ LOG_FILE_PATH = os.path.join(MODELS_DIR, "training_log.md")
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
 LEARNING_RATE = 5e-5
+NUM_CLASSES = 4
 
-def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> float:    
+def calculate_dice_score(outputs, targets, num_classes=NUM_CLASSES, smoothing=1e-6) -> float:    
     """
     Computes macro-averaged Dice score across active classes.
     """
