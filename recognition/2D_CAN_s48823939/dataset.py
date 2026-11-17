@@ -77,10 +77,11 @@ if __name__ == "__main__":
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     LOCAL_DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
     try:
-        tl, vl, tstl, _ = get_oasis_dataloaders(LOCAL_DATA_DIR, batch_size=4)
-        imgs, msks = next(iter(tl))
-        print("\n=== Validation Check Successful ===")
-        print(f"Loaded Image Tensor Batch Shape: {imgs.shape} -> Expected [4, 1, H, W]")
-        print(f"Loaded Mask Tensor Batch Shape:  {msks.shape} -> Expected [4, H, W]")
+        tl, vl, tstl, nc = get_oasis_dataloaders(LOCAL_DATA_DIR, batch_size=4)
+        images, masks = next(iter(tl))
+        print("\n=== Dataset self-test passed ===")
+        print(f"Image batch: {tuple(images.shape)} (expected [4, 1, H, W])")
+        print(f"Mask batch:  {tuple(masks.shape)} (expected [4, H, W])")
+        print(f"num_classes: {nc}")
     except Exception as e:
-        print(f"\n[Verification Error]: Validation failed. Check directory path name. Error: {e}")
+        print(f"\n[Dataset self-test FAILED]: {e}")
