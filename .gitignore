@@ -10,5 +10,6 @@ visualisations/architecture_visualisation.drawio
 visualisations/autopsy.drawio
 visualisations/.$autopsy.drawio.bkp
 visualisations/.$autopsy.drawio.dtmp
+*.drawio.bkp
 Task Sheet.pdf
 README.pdf
