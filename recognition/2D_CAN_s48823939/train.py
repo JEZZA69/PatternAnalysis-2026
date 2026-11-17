@@ -381,6 +381,8 @@ def main():
             
         save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=checkpoint_path, best_dice_val=best_dice_val)
 
+    plot_training_metrics(model_name)
+    
     print("Training complete!")
     
     print("Beginning Testing!")
@@ -390,6 +392,14 @@ def main():
         evaluate_test_set(model, test_loader, criterion, device, num_classes=num_classes)
     else:
         print("ERROR: No best model found. Skipping test evaluation.")
+        
+    peak_vram = get_peak_vram_mb()
+    if peak_vram is not None:
+        print(f"INFO: Peak CUDA VRAM (whole session): {peak_vram:.1f} MiB")
+    else:
+        print("INFO: Peak VRAM not available — DirectML/CPU backend exposes no "
+              "memory API. See README Resource Profiling for the DirectML "
+              "measurement method.")
     
 if __name__ == "__main__":
     main()
