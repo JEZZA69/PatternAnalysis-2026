@@ -218,13 +218,13 @@ def check_targets(dice, target=0.9):
     tissue_all_pass = True
     
     for c in range(NUM_CLASSES):
-        dice = dice[c]
+        d = dice[c]
         if np.isnan(dice):
             status = "N/A (class absent)"
-        elif dice >= target:
-            status = f"PASS ({dice:.4f})"
+        elif d >= target:
+            status = f"PASS ({d:.4f})"
         else:
-            status = f"FAIL ({dice:.4f})"
+            status = f"FAIL ({d:.4f})"
             if c in TISSUE_CLASSES:
                 tissue_all_pass = False
         print(f"  {CLASS_NAMES[c]:<12}: {status}")
