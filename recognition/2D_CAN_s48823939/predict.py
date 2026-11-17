@@ -10,7 +10,7 @@ import argparse
 # Import modules and dataset loader
 from modules import ContextAggregationModule, Simple2DUNet
 from dataset import get_oasis_dataloaders
-from train import DATA_DIR, MODELS_DIR, VIS_DIR
+from train import DATA_DIR, MODELS_DIR, VIS_DIR, get_device
 
 BATCH_SIZE = 8
 NUM_CLASSES = 4
@@ -241,8 +241,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     MODEL_TYPE = args.model
     
-    # Imported here so the module can be imported without DirectML installed
-    from train import get_device
+    
  
     device = get_device()
     print(f"Using inference device: {device}")
