@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import os
 import argparse
+import random
 
 try:
     import torch_directml
@@ -202,6 +203,29 @@ def get_device():
             
     return device
 
+def set_seed(seed: int):
+    """
+    Seed Python, NumPy, and PyTorch RNGs for reproducibility.
+
+    Caveats:
+      - DirectML (AMD GPU) is not bit-exact. Two runs with the same seed can
+        still diverge slightly. The seed controls initialisation and batch
+        order, not hardware-level FP reduction order.
+      - Resuming from a checkpoint does NOT restore RNG state — only model,
+        optimizer, and scheduler state are saved. For a seeded run to be
+        meaningful, start from a fresh checkpoint.
+      - CUDA determinism knobs only apply when torch.cuda.is_available().
+    """
+    
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
 def select_model(model_name, in_channels, num_classes, C, device):
     """Selects model to run based on the value of MODEL_NAME"""
     if model_name.lower() == "unet":
@@ -217,7 +241,13 @@ def main():
     parser = argparse.ArgumentParser(description="Train OASIS Segmentation Models")    
     parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to train (can or unet)")
     parser.add_argument("--epochs", type=int, default=10, help="Number of epochs to run")
+    parser.add_argument("--seed", type=int, default=67, help="Random seed for reproducibility (default: 67)")
+    parser.add_argument("--no-resume", action="store_true", help="Ignore any existing checkpoint and train from scratch")
     args = parser.parse_args()
+    
+    # Seed.
+    set_seed(args.seed)
+    print(f"INFO: Global seed set to {args.seed}")
     
     model_name = args.model
     save_path = os.path.join(MODELS_DIR, f"best_{model_name}_model.pth")
@@ -237,8 +267,14 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4, foreach=False)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
     
-    # Load the checkpoint for iterative improvement
-    start_epoch, best_dice_val = load_checkpoint(checkpoint_path, model, optimizer=optimizer, scheduler=scheduler, device=device)
+    # Load the checkpoint for iterative improvement, unless a fresh run is requested.
+    if args.no_resume:
+        if os.path.exists(checkpoint_path):
+            print(f"INFO: --no-resume set; ignoring existing checkpoint at {checkpoint_path}.")
+        start_epoch, best_dice_val = 0, 0.0
+    else:            
+        start_epoch, best_dice_val = load_checkpoint(checkpoint_path, model, optimizer=optimizer, scheduler=scheduler, device=device)
+    
     end_epoch = start_epoch + args.epochs
     print(f"Starting Training Loop from Epoch {start_epoch + 1}")
                 

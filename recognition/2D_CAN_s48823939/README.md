@@ -43,18 +43,46 @@ PatternAnalysis-2026/
 ```
 
 ## Dependencies & Reproducibility
-```# Environment (Python 3.12)
+### Environment
+```bash
+# Python 3.12
 python --version        # 3.12.x
 pip install torch==2.4.1 torch-directml==0.2.5.dev240914 pillow==12.3.0 numpy==2.5.4 matplotlib==3.11.2
-
-# Ensure OASIS dataset is placed in root directory: PatternAnalysis-2026/OASIS/
-python dataset.py   # Verifies data loader and split integrity
-python modules.py   # Contains the nn.Module class files for both the CAN and U-Net implementations in this report. 
-python train.py     # Set MODEL_NAME = "can" or "unet" in script settings
-python predict.py   # Executes inference, generates quantitative metrics and visualization overlays
-     
 ```
-Datasets and `.pth` weights are **not** committed to the repository, as required by the assessment. 
+
+### How to run
+Place the OASIS dataset in the project folder (`recognition/2D_CAN_s48823939/OASIS/`), then:
+```bash
+# Ensure OASIS dataset is placed in root directory: 
+python dataset.py   # Self test: verifies loaders and split integrity
+python train.py --model can --epochs 10 --seed 67 --no-resume
+python train.py --model unet --epochs 10 --seed 67 --no-resume
+python predict.py --model can
+python predict.py --model unet
+```
+
+Model selection is via the `--model` CLI flag (`can` | `unet`); no constants need editing.
+`torch_directml` is optional — if it is absent, `get_device()` falls back to CUDA or CPU and both
+`train.py` and `predict.py` still run.
+
+Datasets and `.pth` weights are **not** committed to the repository, as required by the assessment.
+
+### Reproducibility (seeds and determinism)
+
+Training is seeded via `--seed` (default 67), which seeds Python `random`, NumPy, and PyTorch
+(`torch.manual_seed`, plus `torch.cuda.manual_seed_all` and `cudnn.deterministic=True` when CUDA
+is available). Two caveats:
+
+1. **Resuming does not restore RNG state.** Checkpoints save model, optimizer, and scheduler
+   state only. For the seed to control the full run, start from a fresh checkpoint:
+   `--no-resume` (or delete `models/checkpoint_<model>.pth`). Runs documented in this report
+   were produced with `--no-resume`.
+2. **DirectML is not bit-exact.** All training and profiling in this report was performed on an
+   AMD GPU via DirectML, which does not guarantee deterministic reduction order. Seeded runs are
+   therefore reproducible *in expectation* (same initialisation, same batch order, metrics agreeing
+   to several decimal places), not bit-for-bit. The same command on CUDA with the determinism flags
+   set above is expected to be bit-exact.
+
 
 ## Data Pipeline and Processing
 ### Dataset Structure & Split Justification
@@ -82,6 +110,7 @@ With 9,664 training slices, the model has ample data, so a large train fraction 
 | Scheduler | ReduceLROnPlateau (mode = max on val Dice, factor 0.5, patience 3) |
 | Loss | Multi-class Cross-Entropy with label smoothing $\epsilon$ = 0.05 |
 | Gradient clipping | Global norm, max 1.0 |
+| seed      | 67 |
 
 
 ## Feasibility Review:
