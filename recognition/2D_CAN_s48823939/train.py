@@ -179,6 +179,10 @@ def log_to_markdown_table(epoch, model_name, train_loss, train_dice, val_loss, v
         # Append the current epoch's row
         f.write(f"| {epoch + 1} | {model_name} | {train_loss:.4f} | {train_dice:.4f} | {val_loss:.4f} | {val_dice:.4f} |\n")    
     
+    
+def plot_training_metrics():
+    """TODO"""
+    
 def get_device():
     """Fetches the optimal device to run the computation on, checks for rangpur CUDA gpu, if not, decides between my local AMD gpu and the cpu"""
     
