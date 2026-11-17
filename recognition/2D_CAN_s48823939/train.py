@@ -35,10 +35,11 @@ def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> flo
     """
     Computes macro-averaged Dice score across active classes.
     """
-    
-    # Ensure variables are on CPU to stay immune to DirectML backend bugs.
+    # Ensures variables are on CPU to stay immune to DirectML backend bugs.
     if outputs.device.type != 'cpu':
         outputs = outputs.cpu()
+    if targets.device.type != 'cpu':
+        targets = targets.cpu()        
     
     predicted_classes = torch.argmax(outputs, dim=1)
     
