@@ -3,7 +3,11 @@ import torch.nn as nn
 import numpy as np
 import os
 
-import torch_directml
+try:
+    import torch_directml
+    HAS_DIRECTML = True
+except ImportError:
+    HAS_DIRECTML = False
 
 from modules import *
 from dataset import get_oasis_dataloaders
