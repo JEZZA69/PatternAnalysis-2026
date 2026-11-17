@@ -107,19 +107,18 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             loss = criterion(outputs, targets)
             
             running_loss += loss.item() * images.size(0)
+            running_dice += calculate_dice_score(outputs_cpu, targets_cpu, num_classes=num_classes) * batch_size
+            total_samples += batch_size
             
             # Move to cpu for this stuff. critical. Lots of lost hair over this.
             outputs_cpu = outputs.detach().cpu()
             targets_cpu = targets.detach().cpu()
             
-            dice = calculate_dice_score(outputs_cpu, targets_cpu, num_classes=num_classes)
-            running_dice += dice * batch_size
-            
-            total_samples += batch_size
-            
-            print(f"Val Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f} | Batch Dice: {dice:.4f}")
+            print(f"Val Batch [{batch_idx + 1}/{len(dataloader)}] | "
+                  f"loss={loss.item():.4f}")
                 
-        total_samples = len(dataloader.dataset)
+        if total_samples == 0:
+            return 0.0, 0.0
         return running_loss / total_samples, running_dice / total_samples
     
 def evaluate_test_set(model, test_loader, criterion, device, num_classes=4):
