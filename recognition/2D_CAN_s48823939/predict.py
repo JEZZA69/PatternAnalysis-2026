@@ -196,7 +196,6 @@ def measure_inference_latency(model, sample_input, device, num_warmup=10, num_re
         for _ in range(num_warmup):
             _ = model(single_slice_input)
 
-        # I haven't used Rangpur once for this project but this is here anyways. 
     if "cuda" in str(device):
         torch.cuda.synchronize(device)
 
