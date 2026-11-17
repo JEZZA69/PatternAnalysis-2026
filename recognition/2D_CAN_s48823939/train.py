@@ -25,7 +25,6 @@ os.makedirs(VIS_DIR, exist_ok=True)
 LOG_FILE_PATH = os.path.join(MODELS_DIR, "training_log.md")
 
 BATCH_SIZE = 30 # 32 cuts it a little too close.
-EPOCHS = 10 # Number of epochs to be run at once. Still saves the checkpoints and logs between epochs.
 LEARNING_RATE = 5e-5
 
 def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> float:    
