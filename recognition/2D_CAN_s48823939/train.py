@@ -210,20 +210,13 @@ def get_device():
 
 def select_model(in_channels, num_classes, C, device):
     """Selects model to run based on the value of MODEL_NAME"""
-    can = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device=device)
-    unet = Simple2DUNet(in_channels=1, num_classes=4, C=64).to(device=device)
-    model = None
-    
-    # Flexible model selection.
     if MODEL_NAME.lower() == "unet":
         print("Initializing Raw 2D U-Net Baseline Model...")
-        model = unet
+        return Simple2DUNet(in_channels=1, num_classes=4, C=64).to(device=device)
     else:
         print("Initializing 2D Context Aggregation Network (CAN)...")
-        model = can
+        model = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device=device)
         
-    return model
-    
     
 def main():    
     # Make the correct device selection according to what hardware this code is being run on
