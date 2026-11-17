@@ -240,8 +240,6 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to evaluate")
     args = parser.parse_args()
     MODEL_TYPE = args.model
-    
-    
  
     device = get_device()
     print(f"Using inference device: {device}")
