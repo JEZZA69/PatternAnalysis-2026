@@ -34,7 +34,7 @@ def calculate_dice_score(outputs, targets, num_classes=NUM_CLASSES, smoothing=1e
     Computes macro-averaged Dice score across active classes.
     
     detach() before cpu() is deliberate: DirectML's .cpu() on an autograd-connected tensor 
-    can silently corrupt values, and we never backprop through this metric anyways.
+    can silently corrupt values, and we never back-prop through this metric anyways.
     """
     
     outputs = outputs.detach().cpu()
