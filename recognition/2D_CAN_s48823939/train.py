@@ -211,7 +211,7 @@ def select_model(model_name, in_channels, num_classes, C, device):
         return Simple2DUNet(in_channels=1, num_classes=4, C=64).to(device=device)
     else:
         print("Initializing 2D Context Aggregation Network (CAN)...")
-        model = ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device=device)
+        return ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device=device)
         
     
 def main():    
