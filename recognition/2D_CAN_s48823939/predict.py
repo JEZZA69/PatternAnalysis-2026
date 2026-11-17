@@ -272,5 +272,7 @@ if __name__ == "__main__":
     metrics = evaluate(model, test_loader, device)
     sanity_check_iou_dice(metrics["dice"], metrics["iou"])
     print_report(model, metrics, tag)
-    check_targets(metrics["dice"])
+    all_labels_pass = check_targets(metrics["dice"])
+    print(f"\nOASIS target (all labels >= 0.90): "
+          f"{'MET' if all_labels_pass else 'NOT MET'}")
     visualise_samples(model, test_loader, device, tag)
