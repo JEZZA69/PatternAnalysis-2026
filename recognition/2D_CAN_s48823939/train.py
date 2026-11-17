@@ -206,7 +206,7 @@ def select_model(model_name, in_channels, num_classes, C, device):
     """Selects model to run based on the value of MODEL_NAME"""
     if model_name.lower() == "unet":
         print("Initializing Raw 2D U-Net Baseline Model...")
-        return Simple2DUNet(in_channels=1, num_classes=4, C=64).to(device=device)
+        return Simple2DUNet(in_channels=1, num_classes=num_classes, C=64).to(device=device)
     else:
         print("Initializing 2D Context Aggregation Network (CAN)...")
         return ContextAggregationModule(in_channels=1, num_classes=num_classes, C=64).to(device=device)
