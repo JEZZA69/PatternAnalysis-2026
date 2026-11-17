@@ -261,4 +261,5 @@ if __name__ == "__main__":
     metrics = evaluate(model, test_loader, device)
     sanity_check_iou_dice(metrics["dice"], metrics["iou"])
     print_and_save_report(model, metrics, tag)
+    check_targets(metrics["dice"])
     visualise_samples(model, test_loader, device, tag)
