@@ -229,7 +229,7 @@ def check_targets(dice, target=0.9):
         print(f"  {CLASS_NAMES[c]:<12}: {status}")
     
     if not tissue_all_pass:
-        print("  NOTE: the tissue-mean does NOT satisfy the target — "
+        print("  NOTE: not all classes satisfy the target — "
               "at least one foreground class is below 0.90.")
     
     return tissue_all_pass
