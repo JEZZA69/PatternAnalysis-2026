@@ -78,7 +78,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         optimizer.step()
 
         running_loss += loss.item() * batch_size
-        running_dice = calculate_dice_score(outputs, targets, num_classes) * batch_size
+        running_dice += calculate_dice_score(outputs, targets, num_classes) * batch_size
         total_samples += batch_size
                 
         # Only print every 20 batches to minimize synchronous overhead
