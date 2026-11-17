@@ -46,7 +46,7 @@ def load_weights(model, weights_filename, device='cpu'):
             model.load_state_dict(state_dict)
         print(f"Successfully loaded weights from {weights_path}")
     else:
-        print(f"WARNING: Weights file '{weights_filename}' not found. Running with uninitialized weights.")
+        raise FileNotFoundError(f"CRITICAL: Weights file '{weights_filename}' not found. Cannot evaluate randomly initialized weights.")
     return model
 
 def safe_ratio(num, den):
