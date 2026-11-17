@@ -5,14 +5,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib.patches as mpatches
+import time
+import argparse
 
 # Import modules and dataset loader
 from modules import ContextAggregationModule, Simple2DUNet
 from dataset import get_oasis_dataloaders
+from train import DATA_DIR, MODELS_DIR, VIS_DIR, get_device
 
-from train import DATA_DIR, MODELS_DIR, VIS_DIR
-
-MODEL_TYPE = "can"      # 'can' or 'unet'
 BATCH_SIZE = 8
 NUM_CLASSES = 4
 CLASS_NAMES = ["Background", "CSF", "Grey Matter", "White Matter"]
@@ -187,7 +187,6 @@ def determine_parameters(model):
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     return total_params
     
-import time
 
 def measure_inference_latency(model, sample_input, device, num_warmup=10, num_repeats=50):
     """Measures average inference latency per slice in milliseconds (ms)."""
@@ -215,7 +214,6 @@ def measure_inference_latency(model, sample_input, device, num_warmup=10, num_re
     return latency_ms
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser(description="Evaluate OASIS Models")
     parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to evaluate")
     args = parser.parse_args()
