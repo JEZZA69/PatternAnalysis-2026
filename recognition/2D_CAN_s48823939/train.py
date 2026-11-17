@@ -266,7 +266,12 @@ def main():
     print("Training complete!")
     
     print("Beginning Testing!")
-    evaluate_test_set(model, test_loader, criterion, device, num_classes=4)
+    print(f"\nLoading best model from {save_path} for final testing...")
+    if os.path.exists(save_path):
+        model.load_state_dict(torch.load(save_path, map_location=device))
+        evaluate_test_set(model, test_loader, criterion, device, num_classes=num_classes)
+    else:
+        print("ERROR: No best model found. Skipping test evaluation.")
     
 if __name__ == "__main__":
     main()
