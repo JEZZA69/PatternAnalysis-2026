@@ -189,7 +189,6 @@ def determine_parameters(model):
     
 import time
 
-
 def measure_inference_latency(model, sample_input, device, num_warmup=10, num_repeats=50):
     """Measures average inference latency per slice in milliseconds (ms)."""
     model.eval()
@@ -216,6 +215,12 @@ def measure_inference_latency(model, sample_input, device, num_warmup=10, num_re
     return latency_ms
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Evaluate OASIS Models")
+    parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to evaluate")
+    args = parser.parse_args()
+    MODEL_TYPE = args.model
+    
     # Imported here so the module can be imported without DirectML installed
     from train import get_device
  
