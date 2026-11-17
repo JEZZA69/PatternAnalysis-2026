@@ -77,7 +77,7 @@ if __name__ == "__main__":
     # Tests layout assuming terminal execution from inside the project directory root
     LOCAL_DATA_DIR = "./OASIS"
     try:
-        tl, vl, tstl = get_oasis_dataloaders(LOCAL_DATA_DIR, batch_size=4)
+        tl, vl, tstl, _ = get_oasis_dataloaders(LOCAL_DATA_DIR, batch_size=4)
         imgs, msks = next(iter(tl))
         print("\n=== Validation Check Successful ===")
         print(f"Loaded Image Tensor Batch Shape: {imgs.shape} -> Expected [4, 1, H, W]")
