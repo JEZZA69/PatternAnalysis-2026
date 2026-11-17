@@ -70,9 +70,6 @@ def get_oasis_dataloaders(data_dir, batch_size=16):
     
     return train_loader, val_loader, test_loader, 4
 
-# ==========================================
-# SANITY CHECK TEST BLOCK (AI generated.)
-# ==========================================
 if __name__ == "__main__":
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     LOCAL_DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
