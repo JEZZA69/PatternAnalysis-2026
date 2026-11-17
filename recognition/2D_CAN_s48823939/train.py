@@ -31,8 +31,10 @@ NUM_CLASSES = 4
 
 def calculate_dice_score(outputs, targets, num_classes=NUM_CLASSES, smoothing=1e-6) -> float:    
     """
-    Computes macro-averaged Dice score across active classes.
-    
+    Per-class DICE score over the batch, then averaged over tissue classes only (no background) with absent classes treated as NaN
+    so they do not inflate the score. Mirrors predict.py::evaluate() so training, 
+    validation and test Dice are on the same scale as teh reported tissue mean.
+        
     detach() before cpu() is deliberate: DirectML's .cpu() on an autograd-connected tensor 
     can silently corrupt values, and we never back-prop through this metric anyways.
     """
@@ -49,11 +51,16 @@ def calculate_dice_score(outputs, targets, num_classes=NUM_CLASSES, smoothing=1e
     # Calculate overlap and cardinality per class across batch, height, and width
     intersection = (prediction_one_hot * target_one_hot).sum(dim=(0, 2, 3))
     cardinality = prediction_one_hot.sum(dim=(0, 2, 3)) + target_one_hot.sum(dim=(0, 2, 3))
-    
-    # Compute dice per class with smoothing
-    dice_per_class = (2.0 * intersection + smoothing) / (cardinality + smoothing)
 
-    return dice_per_class.mean().item()
+    absent = cardinality == 0
+    dice_per_class = (2.0 * intersection + smoothing) / (cardinality + smoothing)
+    dice_per_class = dice_per_class.masked_fill(absent, float("nan"))
+    
+    # Exclude background (0)
+    tissue_dice = dice_per_class[1:]
+    if torch.isnan(tissue_dice).all():
+        return 0.0
+    return torch.nanmean(tissue_dice).item()
 
 def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes):
     model.train()
