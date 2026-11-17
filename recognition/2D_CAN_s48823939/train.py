@@ -88,6 +88,9 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         running_dice += dice * batch_size
         
     total_samples = len(dataloader.dataset)
+    if total_samples == 0:
+        return 0.0, 0.0
+    
     return running_loss / total_samples, running_dice / total_samples
 
 def validate_one_epoch(model, dataloader, criterion, device, num_classes):
