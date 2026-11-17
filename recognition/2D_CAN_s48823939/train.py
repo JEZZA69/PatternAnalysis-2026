@@ -87,10 +87,8 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
                   f"epoch-avg loss={running_loss / total_samples:.4f} | "
                   f"epoch-avg dice={running_dice / total_samples:.4f}")
                     
-    total_samples = len(dataloader.dataset)
     if total_samples == 0:
         return 0.0, 0.0
-    
     return running_loss / total_samples, running_dice / total_samples
 
 def validate_one_epoch(model, dataloader, criterion, device, num_classes):
