@@ -217,6 +217,8 @@ def main():
     args = parser.parse_args()
     
     model_name = args.model
+    save_path = os.path.join(MODELS_DIR, f"best_{model_name}_model.pth")
+    checkpoint_path = os.path.join(MODELS_DIR, f"checkpoint_{model_name}.pth")
         
     # Make the correct device selection according to what hardware this code is being run on
     device = get_device()
