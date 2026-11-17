@@ -10,7 +10,7 @@ import argparse
 # Import modules and dataset loader
 from modules import ContextAggregationModule, Simple2DUNet
 from dataset import get_oasis_dataloaders
-from train import DATA_DIR, MODELS_DIR, VIS_DIR, get_device
+from train import DATA_DIR, MODELS_DIR, VIS_DIR
 
 BATCH_SIZE = 8
 NUM_CLASSES = 4
