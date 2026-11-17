@@ -189,31 +189,42 @@ def plot_training_metrics(model_name, log_path=LOG_FILE_PATH):
         print(f"WARN: {log_path} not found; skipping training-metrics plot.")
         return
     
-    epochs, train_loss, train_dice, val_loss, val_dice = [], [], [], [], []
-    
+    epochs: list[int] = []
+    train_loss: list[float] = []
+    train_dice: list[float] = []
+    val_loss: list[float] = []
+    val_dice: list[float] = []
+        
     with open(log_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
+            
             # Skip blanks, the "|:---:|" divider, and the header row.
             if not line.startswith("|") or line.startswith("|:") or "Epoch" in line:
                 continue
             
             cells = [c.strip() for c in line.strip("|").split("|")]
-            
             if len(cells) != 6:
                 continue
+            
             try:
-                epoch      = int(cells[0])
-                row_model  = cells[1]
-                train_loss, train_dice     = float(cells[2]), float(cells[3])
-                val_loss, val_dice     = float(cells[4]), float(cells[5])
+                ep          = int(cells[0])
+                row_model   = cells[1]
+                t_loss      = float(cells[2])
+                t_dice      = float(cells[3])
+                v_loss      = float(cells[4])
+                v_dice      = float(cells[5])
             except ValueError:
                 continue
+            
             if row_model.lower() != model_name.lower():
                 continue
-            epochs.append(epoch)
-            train_loss.append(train_loss); train_dice.append(train_dice)
-            val_loss.append(val_loss);   val_dice.append(val_dice)
+            
+            epochs.append(ep)
+            train_loss.append(t_loss)
+            train_dice.append(t_dice)
+            val_loss.append(v_loss)
+            val_dice.append(v_dice)
 
     if not epochs:
         print(f"WARN: No log rows found for model '{model_name}'; skipping plot.")
