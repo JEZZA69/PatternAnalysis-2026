@@ -213,6 +213,7 @@ def main():
     
     parser = argparse.ArgumentParser(description="Train OASIS Segmentation Models")    
     parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to train (can or unet)")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs to run")
     args = parser.parse_args()
     
     model_name = args.model
@@ -233,7 +234,7 @@ def main():
     
     # Load the checkpoint for iterative improvement
     start_epoch, best_dice_val = load_checkpoint(CHECKPOINT_PATH, model, optimizer=optimizer, scheduler=scheduler, device=device)
-    end_epoch = start_epoch + EPOCHS
+    end_epoch = start_epoch + args.epochs
     print(f"Starting Training Loop from Epoch {start_epoch + 1}")
                 
     for epoch in range(start_epoch, end_epoch):
