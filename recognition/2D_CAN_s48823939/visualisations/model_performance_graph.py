@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# 1. Your raw log data copied exactly as a string
+# Raw log data copied exactly as a string
 raw_data = """
 
 | Epoch | Model | Train Loss | Train Dice | Val Loss | Val Dice |
