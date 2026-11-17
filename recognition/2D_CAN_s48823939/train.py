@@ -265,6 +265,22 @@ def get_device():
             
     return device
 
+def get_peak_vram_mb():
+    """
+    Return peak GPU VRAM in MiB since the last torch.cuda.reset_peak_memory_stats()
+    call, or None when the backend exposes no memory introspection.
+
+    CUDA: torch.cuda.max_memory_allocated() reports the high-water mark of the
+    caching allocator.
+    DirectML / CPU: torch_directml has no allocator API, so this returns None and
+    the caller should skip the print. This is a backend limitation, not a missing
+    measurement — see README Resource Profiling for the Task-Manager fallback used
+    on DirectML.
+    """
+    if torch.cuda.is_available():
+        return torch.cuda.max_memory_allocated() / (1024 ** 2)
+    return None
+
 def set_seed(seed: int):
     """
     Seed Python, NumPy, and PyTorch RNGs for reproducibility.
@@ -299,7 +315,6 @@ def select_model(model_name, in_channels, num_classes, C, device):
         
     
 def main():    
-    
     parser = argparse.ArgumentParser(description="Train OASIS Segmentation Models")    
     parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to train (can or unet)")
     parser.add_argument("--epochs", type=int, default=10, help="Number of epochs to run")
@@ -317,6 +332,10 @@ def main():
         
     # Make the correct device selection according to what hardware this code is being run on
     device = get_device()
+    
+    # Reset the peak VRAM measurements so it covers this run only
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
                 
     # Data loaders
     train_loader, val_loader, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
