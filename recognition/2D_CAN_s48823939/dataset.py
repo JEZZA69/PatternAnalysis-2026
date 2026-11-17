@@ -8,9 +8,8 @@ import numpy as np
 class OASIS2DDataset(Dataset):
     """OASIS Brain 2D dataset"""
     def __init__(self, images_dir, masks_dir):
-        """
-        Directly loads paired images and masks from their respective pre-split folders.
-        """
+        """Directly loads paired images and masks from their respective pre-split folders."""
+        
         self.image_paths = sorted(glob.glob(os.path.join(images_dir, "*.png")))
         self.mask_paths = sorted(glob.glob(os.path.join(masks_dir, "*.png")))
         
