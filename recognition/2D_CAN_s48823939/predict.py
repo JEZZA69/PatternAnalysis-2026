@@ -211,6 +211,30 @@ def measure_inference_latency(model, sample_input, device, num_warmup=10, num_re
     latency_ms = (total_time / num_repeats) * 1000.0
     return latency_ms
 
+def check_targets(dice, target=0.9):
+    """Print per-class pass/fail against the OASIS target (Dice >= 0.9)."""
+    print(f"\nTarget check (Dice >= {target} across ALL labels):")
+    
+    tissue_all_pass = True
+    
+    for c in range(NUM_CLASSES):
+        dice = dice[c]
+        if np.isnan(dice):
+            status = "N/A (class absent)"
+        elif dice >= target:
+            status = f"PASS ({dice:.4f})"
+        else:
+            status = f"FAIL ({dice:.4f})"
+            if c in TISSUE_CLASSES:
+                tissue_all_pass = False
+        print(f"  {CLASS_NAMES[c]:<12}: {status}")
+    
+    if not tissue_all_pass:
+        print("  NOTE: the tissue-mean does NOT satisfy the target — "
+              "at least one foreground class is below 0.90.")
+    
+    return tissue_all_pass
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate OASIS Models")
     parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to evaluate")
