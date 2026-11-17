@@ -74,8 +74,8 @@ def get_oasis_dataloaders(data_dir, batch_size=16):
 # SANITY CHECK TEST BLOCK (AI generated.)
 # ==========================================
 if __name__ == "__main__":
-    # Tests layout assuming terminal execution from inside the project directory root
-    LOCAL_DATA_DIR = "./OASIS"
+    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    LOCAL_DATA_DIR = os.path.join(SCRIPT_DIR, "OASIS")
     try:
         tl, vl, tstl, _ = get_oasis_dataloaders(LOCAL_DATA_DIR, batch_size=4)
         imgs, msks = next(iter(tl))
