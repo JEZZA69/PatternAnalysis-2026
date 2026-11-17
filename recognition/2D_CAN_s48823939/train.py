@@ -30,12 +30,13 @@ NUM_CLASSES = 4
 def calculate_dice_score(outputs, targets, num_classes=NUM_CLASSES, smoothing=1e-6) -> float:    
     """
     Computes macro-averaged Dice score across active classes.
+    
+    detach() before cpu() is deliberate: DirectML's .cpu() on an autograd-connected tensor 
+    can silently corrupt values, and we never backprop through this metric anyways.
     """
-    # Ensures variables are on CPU to stay immune to DirectML backend bugs.
-    if outputs.device.type != 'cpu':
-        outputs = outputs.cpu()
-    if targets.device.type != 'cpu':
-        targets = targets.cpu()        
+    
+    outputs = outputs.detach().cpu()
+    targets = targets.detach().cpu()   
     
     predicted_classes = torch.argmax(outputs, dim=1)
     
@@ -110,7 +111,7 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             running_dice += calculate_dice_score(outputs_cpu, targets_cpu, num_classes=num_classes) * batch_size
             total_samples += batch_size
             
-            # Move to cpu for this stuff. critical. Lots of lost hair over this.
+            # 
             outputs_cpu = outputs.detach().cpu()
             targets_cpu = targets.detach().cpu()
             
