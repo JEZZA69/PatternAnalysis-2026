@@ -108,12 +108,8 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             loss = criterion(outputs, targets)
             
             running_loss += loss.item() * images.size(0)
-            running_dice += calculate_dice_score(outputs_cpu, targets_cpu, num_classes=num_classes) * batch_size
+            running_dice += calculate_dice_score(outputs, targets, num_classes=num_classes) * batch_size
             total_samples += batch_size
-            
-            # 
-            outputs_cpu = outputs.detach().cpu()
-            targets_cpu = targets.detach().cpu()
             
             print(f"Val Batch [{batch_idx + 1}/{len(dataloader)}] | "
                   f"loss={loss.item():.4f}")
