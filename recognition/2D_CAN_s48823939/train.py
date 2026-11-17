@@ -118,7 +118,6 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
             outputs_cpu = outputs.detach().cpu()
             targets_cpu = targets.detach().cpu()
             
-            # DICE. Not included in the training loop because it slows us down.
             dice = calculate_dice_score(outputs_cpu, targets_cpu, num_classes=num_classes)
             running_dice += dice * batch_size
             
