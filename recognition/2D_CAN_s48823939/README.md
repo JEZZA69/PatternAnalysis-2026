@@ -198,9 +198,17 @@ The CSF gain is the headline finding. CSF occupies thin, high-curvature regions,
 | Efficiency Metric                 | Baseline 2D U-Net     | 2D CAN (C=64)     | Trade-Off Impact  |
 |---                                |---                    |---                |---                |
 |Total Parameters|406852|222468|Can requires 45.3% fewer parameters, greatly reducing model storage size|
-|Peak GPU VRAM (30 batch)           |2.1 GB                 |1.0 GB             |CAN reduces VRAM consumption by 52.4%, as it avoids storing heavy multi-scale encoder skip-connection caches.      |
+|Peak GPU VRAM (30 batch)*           |2.1 GB                 |1.0 GB             |CAN reduces VRAM consumption by 52.4%, as it avoids storing heavy multi-scale encoder skip-connection caches.      |
 | Inference Latency (per slice)     |11.05 ms               |11.54 ms           |Negligible latency penalty (+4.4%), maintaining real-time throughput suitable for clinical workflows.               |
 | Full Resolution Feature Maps      |Downsampled to 128x128 |Retained at 256x256 |Preserves fine spatial boundaries and gyral folds, trading downsampling memory savings for explicit pixel-level precision. |
+
+\* **Peak VRAM measurement.** DirectML (AMD GPU) exposes no memory API through PyTorch, so the
+DirectML figures above were sampled from Windows Task Manager's GPU tab at peak during a 30-batch
+training step. `train.py::get_peak_vram_mb()` uses `torch.cuda.max_memory_allocated()` and returns
+`None` under DirectML/CPU, so the same figure *is* reproducible from code on CUDA — the DirectML
+numbers are not, by backend limitation, not by omission. **Inference latency** in the table is
+measured by `predict.py::measure_inference_latency()` (10 warm-up passes, 50 timed single-slice
+forward passes, `torch.cuda.synchronize()` around the timed loop when CUDA is in use).
 
 The CAN is simultaneously smaller, cheaper (in memory) and more accurate than the U-Net. It spends its compute on width at full resolution rather than depth through a bottleneck. The only cost is latency, and +0.49ms/slice is immaterial. Profiles were collected on DirectML; CUDA numbers on Rangpur will differ absolutely but the ordering should hold.
 
