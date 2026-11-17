@@ -132,7 +132,7 @@ def determine_parameters(model):
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     return total_params
  
-def print_and_save_report(model, metrics, tag):
+def print_report(model, metrics, tag):
     d, u = metrics["dice"], metrics["iou"]
  
     header = f"{'Class':<15}{'Dice':>10}{'IoU':>10}"
@@ -256,6 +256,6 @@ if __name__ == "__main__":
  
     metrics = evaluate(model, test_loader, device)
     sanity_check_iou_dice(metrics["dice"], metrics["iou"])
-    print_and_save_report(model, metrics, tag)
+    print_report(model, metrics, tag)
     check_targets(metrics["dice"])
     visualise_samples(model, test_loader, device, tag)
