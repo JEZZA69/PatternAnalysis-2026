@@ -129,8 +129,7 @@ def validate_one_epoch(model, dataloader, criterion, device, num_classes):
         return running_loss / total_samples, running_dice / total_samples
     
 def evaluate_test_set(model, test_loader, criterion, device, num_classes=4):
-    model.eval() # Not necessary currently but just in case I call this sometime elsewhere I want it here.
-    
+    model.eval()
     print("\nRunning final test set evaluation...")
     test_loss, test_dice = validate_one_epoch(model, test_loader, criterion, device, num_classes) 
     print(f"Final Test Loss: {test_loss:.4f} | Final Test Dice: {test_dice:.4f}")
@@ -153,23 +152,19 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
     Returns the next epoch index to start training from and current best dice score on the validation set.
     """
     
-    # No checkpoint. Start from scratch. Epoch 0, 1.0 Dice score.
+    # No checkpoint. Start from scratch.
     if not os.path.exists(path):
-        print("No checkpoint found. Starting fresh from Epoch 0!")
+        print("No checkpoint found. Starting fresh from Epoch 0")
         return 0, 0
     
     # Load the checkpoint
     print(f"Loading checkpoint from {path}...")
     checkpoint = torch.load(path, map_location='cpu')
-    
-    # Inject the checkpoint into the model.
     model.load_state_dict(checkpoint['model_state'])
     
-    # Restore optimizer
+    # Restore optimizer and learning rate scheduler position
     if optimizer is not None and 'optimizer_state' in checkpoint:
-        optimizer.load_state_dict(checkpoint['optimizer_state'])
-        
-    # Restore learning rate scheduler position
+        optimizer.load_state_dict(checkpoint['optimizer_state']) 
     if scheduler is not None and 'scheduler_state' in checkpoint:
         scheduler.load_state_dict(checkpoint['scheduler_state'])
         
@@ -197,7 +192,7 @@ def get_device():
     
     if torch.cuda.is_available():
         device = torch.device("cuda")
-        print(f"INFO: Oh! We are on Rangpur! AMAZING: {device}")
+        print(f"INFO: Rangpur CUDA GPU active: {device}")
     else:
         try:
             # index 1 is my graphics card and 0 is my integrated graphics.
