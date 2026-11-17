@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import os
+import argparse
 
 try:
     import torch_directml
@@ -24,16 +25,6 @@ LOG_FILE_PATH = os.path.join(MODELS_DIR, "training_log.md")
 BATCH_SIZE = 30 # 32 cuts it a little too close.
 EPOCHS = 10 # Number of epochs to be run at once. Still saves the checkpoints and logs between epochs.
 LEARNING_RATE = 5e-5
-
-# IMPORTANT: CHANGE THIS VALUE TO EITHER "can" or "unet". Sets the model to be run for testing.
-MODEL_NAME = "unet"
-
-if MODEL_NAME.lower() == "unet":
-    SAVE_PATH = os.path.join(MODELS_DIR, "best_unet_model.pth")
-    CHECKPOINT_PATH = os.path.join(MODELS_DIR, "checkpoint_unet.pth")
-else:
-    SAVE_PATH = os.path.join(MODELS_DIR, "best_can_model.pth")
-    CHECKPOINT_PATH = os.path.join(MODELS_DIR, "checkpoint_can.pth")
 
 def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> float:    
     """
@@ -210,7 +201,7 @@ def get_device():
 
 def select_model(in_channels, num_classes, C, device):
     """Selects model to run based on the value of MODEL_NAME"""
-    if MODEL_NAME.lower() == "unet":
+    if model_name.lower() == "unet":
         print("Initializing Raw 2D U-Net Baseline Model...")
         return Simple2DUNet(in_channels=1, num_classes=4, C=64).to(device=device)
     else:
@@ -219,6 +210,13 @@ def select_model(in_channels, num_classes, C, device):
         
     
 def main():    
+    
+    parser = argparse.ArgumentParser(description="Train OASIS Segmentation Models")    
+    parser.add_argument("--model", type=str, default="can", choices=["can", "unet"], help="Model to train (can or unet)")
+    args = parser.parse_args()
+    
+    model_name = args.model
+        
     # Make the correct device selection according to what hardware this code is being run on
     device = get_device()
                 
@@ -247,7 +245,7 @@ def main():
         scheduler.step(val_dice)
         
         # LOGGING
-        log_to_markdown_table(epoch, MODEL_NAME, train_loss, train_dice, val_loss, val_dice)
+        log_to_markdown_table(epoch, model_name, train_loss, train_dice, val_loss, val_dice)
         print(f"Epoch [{epoch}/{end_epoch - 1}] finished | "
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
