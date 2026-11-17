@@ -82,11 +82,11 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
                 
         # Only print every 20 batches to minimize synchronous overhead
         if (batch_idx + 1) % 20 == 0:
-            print(f"Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f}")
-            
-        dice = calculate_dice_score(outputs=outputs, targets=targets, num_classes=num_classes)
-        running_dice += dice * batch_size
-        
+            print(f"Batch [{batch_idx + 1}/{len(dataloader)}] | "
+                  f"loss={loss.item():.4f} | "
+                  f"epoch-avg loss={running_loss / total_samples:.4f} | "
+                  f"epoch-avg dice={running_dice / total_samples:.4f}")
+                    
     total_samples = len(dataloader.dataset)
     if total_samples == 0:
         return 0.0, 0.0
