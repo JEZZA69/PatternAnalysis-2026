@@ -10,10 +10,7 @@ import matplotlib.patches as mpatches
 from modules import ContextAggregationModule, Simple2DUNet
 from dataset import get_oasis_dataloaders
 
-from train import PROJECT_ROOT, DATA_DIR, MODELS_DIR
-
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, "visualisations")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+from train import DATA_DIR, MODELS_DIR, VIS_DIR
 
 MODEL_TYPE = "can"      # 'can' or 'unet'
 BATCH_SIZE = 8
@@ -47,6 +44,7 @@ def load_weights(model, weights_filename, device='cpu'):
         print(f"Successfully loaded weights from {weights_path}")
     else:
         raise FileNotFoundError(f"CRITICAL: Weights file '{weights_filename}' not found. Cannot evaluate randomly initialized weights.")
+    
     return model
 
 def safe_ratio(num, den):
@@ -179,7 +177,7 @@ def visualise_samples(model, loader, device, tag, num_samples=4):
     fig.legend(handles=patches, loc="lower center", ncol=3, frameon=True)
     plt.tight_layout(rect=[0, 0.04, 1, 1])
  
-    save_path = os.path.join(OUTPUT_DIR, f"oasis_{tag}_predictions.png")
+    save_path = os.path.join(VIS_DIR, f"oasis_{tag}_predictions.png")
     plt.savefig(save_path, dpi=200, bbox_inches="tight")
     plt.close()
     print(f"--> Sample figure saved to: {save_path}")
