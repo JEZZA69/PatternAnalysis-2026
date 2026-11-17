@@ -201,7 +201,7 @@ def get_device():
             
     return device
 
-def select_model(in_channels, num_classes, C, device):
+def select_model(model_name, in_channels, num_classes, C, device):
     """Selects model to run based on the value of MODEL_NAME"""
     if model_name.lower() == "unet":
         print("Initializing Raw 2D U-Net Baseline Model...")
@@ -229,7 +229,7 @@ def main():
     train_loader, val_loader, test_loader, num_classes = get_oasis_dataloaders(DATA_DIR, batch_size=BATCH_SIZE)
     
     # Based on user configuration, select either the 2D Can model or the 2D unet model.
-    model = select_model(in_channels=1, num_classes=num_classes, C=64, device=device)
+    model = select_model(model_name=model_name, in_channels=1, num_classes=num_classes, C=64, device=device)
     
     # Optimization
     criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
