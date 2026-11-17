@@ -161,7 +161,7 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
     best_dice_val = checkpoint.get('best_dice_val', 0.0)
     start_epoch = checkpoint['epoch'] + 1
     
-    print(f"Resuming seamlessly! Next epoch will be Epoch {start_epoch + 1}.")
+    print(f"Resuming seamlessly! Next epoch will be Epoch {start_epoch}.")
     return start_epoch, best_dice_val
 
 def log_to_markdown_table(epoch, model_name, train_loss, train_dice, val_loss, val_dice, path=LOG_FILE_PATH):
