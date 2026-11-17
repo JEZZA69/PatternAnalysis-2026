@@ -219,7 +219,7 @@ def check_targets(dice, target=0.9):
     
     for c in range(NUM_CLASSES):
         d = dice[c]
-        if np.isnan(dice):
+        if np.isnan(d):
             status = "N/A (class absent)"
         elif d >= target:
             status = f"PASS ({d:.4f})"
