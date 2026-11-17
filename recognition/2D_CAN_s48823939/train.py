@@ -63,6 +63,7 @@ def calculate_dice_score(outputs, targets, num_classes=4, smoothing=1e-6) -> flo
 def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes):
     model.train()
     running_loss = 0.0
+    running_dice = 0.0
     total_samples = 0
 
     for batch_idx, (images, targets) in enumerate(dataloader):
@@ -73,13 +74,11 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         outputs = model(images)
         loss = criterion(outputs, targets)
         
-        # --- NAN GUARD --- 
-        # Had a lot of issues with gradient explosion so this was added
+        # Gradient explosion issues were encountered during testing. This is some mitigation
         if torch.isnan(loss):
             print(f"WARN: NaN loss detected at batch {batch_idx+1}. Skipping batch to prevent corruption.")
             optimizer.zero_grad()
             continue
-        # -----------------
         
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, foreach=False)
@@ -91,10 +90,11 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device, num_classes
         # Only print every 20 batches to minimize synchronous overhead
         if (batch_idx + 1) % 20 == 0:
             print(f"Batch [{batch_idx+1}/{len(dataloader)}] | Loss: {loss.item():.4f}")
+            
+        dice = calculate_dice_score(outputs=outputs, targets=targets, num_classes=num_classes)
+        running_dice += dice * batch_size
         
     total_samples = len(dataloader.dataset)
-    
-    dice = calculate_dice_score(outputs, targets, num_classes=num_classes)
     return running_loss / total_samples, dice
 
 def validate_one_epoch(model, dataloader, criterion, device, num_classes):
