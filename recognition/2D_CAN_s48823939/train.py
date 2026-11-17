@@ -148,7 +148,7 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None, device='cpu'):
     # No checkpoint. Start from scratch.
     if not os.path.exists(path):
         print("No checkpoint found. Starting fresh from Epoch 0")
-        return 0, 0
+        return 0, 0.0
     
     # Load the checkpoint
     print(f"Loading checkpoint from {path}...")
