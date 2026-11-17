@@ -131,7 +131,8 @@ def evaluate_test_set(model, test_loader, criterion, device, num_classes=4):
     model.eval()
     print("\nRunning final test set evaluation...")
     test_loss, test_dice = validate_one_epoch(model, test_loader, criterion, device, num_classes) 
-    print(f"Final Test Loss: {test_loss:.4f} | Final Test Dice: {test_dice:.4f}")
+    print(f"Final Test Loss: {test_loss:.4f} | "
+          f"Final Test Dice (tissue mean, excl. background): {test_dice:.4f}")
       
 def save_checkpoint(epoch, model, optimizer, scheduler, path, best_dice_val=0.0):
     """Saves a complete snapshot of the model to be resumed later. Prevents the need for long compute sessions, enabling incremental improvement of the model."""
