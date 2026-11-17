@@ -214,25 +214,40 @@ def check_targets(dice, target=0.9):
     """Print per-class pass/fail against the OASIS target (Dice >= 0.9)."""
     print(f"\nTarget check (Dice >= {target} across ALL labels):")
     
-    tissue_all_pass = True
+    all_pass = True
+    tissue_fail = False
+    failed_labels = []
     
     for c in range(NUM_CLASSES):
         d = dice[c]
         if np.isnan(d):
+            # Class absent from the test set. Cannot claim a pass.
             status = "N/A (class absent)"
+            all_pass = False
+            failed_labels.append(f"{CLASS_NAMES[c]} (absent)")
         elif d >= target:
             status = f"PASS ({d:.4f})"
         else:
             status = f"FAIL ({d:.4f})"
+            all_pass = False
+            failed_labels.append(f"{CLASS_NAMES[c]} ({d:.4f})")
             if c in TISSUE_CLASSES:
-                tissue_all_pass = False
+                tissue_fail = True
+        
         print(f"  {CLASS_NAMES[c]:<12}: {status}")
     
-    if not tissue_all_pass:
-        print("  NOTE: not all classes satisfy the target — "
-              "at least one foreground class is below 0.90.")
     
-    return tissue_all_pass
+    if not all_pass:
+        print("  OVERALL: TARGET NOT MET — "
+              f"{len(failed_labels)} label(s) below {target}: "
+              + ", ".join(failed_labels))
+        if tissue_fail:
+            print("  NOTE: tissue-mean (excluding background) does NOT "
+                  "establish that all labels meet the target.")
+    else:
+        print(f"  OVERALL: TARGET MET (all {NUM_CLASSES} labels >= {target})")
+
+    return all_pass
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate OASIS Models")
