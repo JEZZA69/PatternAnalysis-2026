@@ -255,11 +255,11 @@ def main():
               f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | "
               f"Val Loss: {val_loss:.4f} | Val Dice: {val_dice:.4f}")
                 
-        # Save best model checkpoint as the best model for this run. Just in case the checkpoint explodes :(
+        # Save best model checkpoint as the best model for this run.
         if val_dice > best_dice_val:
             best_dice_val = val_dice
-            torch.save(model.state_dict(), SAVE_PATH)
-            print(f"--> Saved new best model checkpoint to {SAVE_PATH} (Dice: {best_dice_val:.4f})")
+            torch.save(model.state_dict(), save_path)
+            print(f"--> Saved new best model checkpoint to {save_path} (Dice: {best_dice_val:.4f})")
             
         save_checkpoint(epoch=epoch, model=model, optimizer=optimizer, scheduler=scheduler, path=checkpoint_path, best_dice_val=best_dice_val)
 
